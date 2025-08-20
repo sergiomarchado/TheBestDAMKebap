@@ -48,6 +48,10 @@ android {
 
 }
 
+hilt {
+    enableAggregatingTask = false
+}
+
 dependencies {
     // CORE
     implementation(platform(libs.androidx.compose.bom))
@@ -58,6 +62,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // FIREBASE
     implementation(platform(libs.firebase.bom))
@@ -66,10 +71,14 @@ dependencies {
     implementation(libs.firebase.analytics)
     //AppCheck
     implementation(libs.firebase.appcheck)
+    // App Check providers
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
 
     // HILT DI
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // ROOM
     implementation(libs.room.runtime)

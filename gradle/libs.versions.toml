@@ -3,8 +3,10 @@ agp = "8.12.1"
 kotlin = "2.2.10"
 ksp = "2.2.10-2.0.2"
 hilt = "2.57"
+hiltNavCompose = "1.2.0"
 coreKtx = "1.17.0"
 lifecycleRuntimeKtx = "2.9.2"
+lifecycleRuntimeCompose = "2.9.2"
 activityCompose = "1.10.1"
 composeBom = "2025.08.00"
 googleGmsGoogleServices = "4.4.3"
@@ -14,8 +16,6 @@ navigationCompose = "2.9.3"
 
 # Firebase
 firebaseBom = "34.1.0"
-firebaseAuth = "24.0.1"
-firebaseFirestore = "26.0.0"
 
 # Room
 room = "2.7.2"
@@ -42,20 +42,25 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+
 
 # Hilt:
 hilt-android  = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavCompose" }
 
 # Navigation Compose
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 
 # FIREBASE
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
-firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-appcheck = { module = "com.google.firebase:firebase-appcheck" }
+firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
+firebase-appcheck-debug         = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
 
 # ROOM
 room-runtime   = { module = "androidx.room:room-runtime", version.ref = "room" }
