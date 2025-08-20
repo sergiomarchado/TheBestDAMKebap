@@ -1,0 +1,30 @@
+# Gradle & builds
+.gradle/
+**/build/
+*.apk
+*.ap_
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Keystores (no deben subirse nunca)
+*.jks
+*.keystore
+keystore.properties
+
+# Archivos locales de configuración
+local.properties
+secrets.properties
+secrets.defaults.properties
+
+# Firebase config
+app/google-services.json
+app/src/**/google-services.json
+
+# Logs
+*.log
+
