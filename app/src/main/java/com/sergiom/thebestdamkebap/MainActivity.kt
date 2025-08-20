@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sergiom.thebestdamkebap.ui.auth.LoginScreen
+import com.sergiom.thebestdamkebap.ui.auth.RegisterScreen
 import com.sergiom.thebestdamkebap.ui.theme.TheBestDAMKebapTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -24,8 +26,8 @@ import dagger.hilt.android.AndroidEntryPoint
  *
  * Rutas:
  * - "login"    -> LoginScreen (email/contraseña + invitado).
- * - "register" -> Placeholder de registro (lo creamos de verdad en la próxima clase).
- * - "home"     -> Placeholder de home (lo sustituimos por HomeScreen real luego).
+ * - "register" -> RegisterScreen (alta o mejora de invitado).
+ * - "home"     -> Placeholder de home (lo sustituiremos por HomeScreen real).
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -50,9 +52,11 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable(Routes.LOGIN) {
                         LoginScreen(
+                            logoRes = R.drawable.ic_logo,
                             onAuthenticated = {
                                 navController.navigate(Routes.HOME) {
-                                    popUpTo(Routes.LOGIN) { inclusive = true } // no volver a login
+                                    // Limpia login del back stack
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
                                     launchSingleTop = true
                                 }
                             },
@@ -63,16 +67,22 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(Routes.REGISTER) {
-                        RegisterPlaceholder(
-                            onBack = { navController.popBackStack() }
+                        RegisterScreen(
+                            logoRes = R.drawable.ic_logo,
+                            onRegistered = {
+                                navController.navigate(Routes.HOME) {
+                                    // Al registrar, limpia también login del back stack
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            onBackToLogin = { navController.popBackStack() }
                         )
-                        // Próxima clase: sustituir por RegisterScreen real e invocar
-                        // viewModel.registerWithEmail(...) desde ahí.
                     }
 
                     composable(Routes.HOME) {
+                        // TODO: sustituir por HomeScreen real en la siguiente clase
                         HomePlaceholder()
-                        // Próxima clase: sustituir por HomeScreen real.
                     }
                 }
             }
@@ -81,7 +91,7 @@ class MainActivity : ComponentActivity() {
 }
 
 /** Placeholder mínimo para 'home' (temporal). */
-@androidx.compose.runtime.Composable
+@Composable
 private fun HomePlaceholder() {
     Scaffold { _ ->
         Column(
@@ -91,21 +101,6 @@ private fun HomePlaceholder() {
         ) {
             Text("The Best DAM Kebap", style = MaterialTheme.typography.headlineSmall)
             Text("¡Bienvenido/a! 🎉", style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-/** Placeholder mínimo para 'register' (temporal). */
-@androidx.compose.runtime.Composable
-private fun RegisterPlaceholder(onBack: () -> Unit) {
-    Scaffold { _ ->
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Registro (pendiente)", style = MaterialTheme.typography.headlineSmall)
-            Text("Aquí irá el formulario de alta.", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
