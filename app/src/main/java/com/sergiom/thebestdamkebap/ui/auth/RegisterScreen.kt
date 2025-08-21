@@ -2,7 +2,6 @@ package com.sergiom.thebestdamkebap.ui.auth
 
 import android.util.Patterns
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -10,37 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,38 +29,31 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sergiom.thebestdamkebap.auth.AuthViewModel
+import com.sergiom.thebestdamkebap.ui.auth.components.register.FormRegister
+import com.sergiom.thebestdamkebap.ui.auth.components.register.RegisterLogoAndTitle
+import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
+import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun RegisterScreen(
-    onRegistered: () -> Unit = {},
+    onRegistered: () -> Unit = {},   // (Actualmente no se usa; puedes eliminarlo si quieres)
     onBackToLogin: () -> Unit = {},
     @DrawableRes logoRes: Int? = null,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val colors = MaterialTheme.colorScheme
-    val shapes = MaterialTheme.shapes
+    val focus = LocalFocusManager.current
 
     // VM
     val loading by viewModel.loading.collectAsStateWithLifecycle()
-    val error   by viewModel.error.collectAsStateWithLifecycle()
-    val message by viewModel.message.collectAsStateWithLifecycle()
 
-    // Form
+    // Form state
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -96,42 +68,36 @@ fun RegisterScreen(
     val confirmError = confirm.isNotBlank() && confirm != password
     val mandatoryMissing = email.isBlank() || password.isBlank() || confirm.isBlank()
     val formHasErrors = emailError || passError || confirmError || mandatoryMissing
+    val canSubmit = !formHasErrors && !loading && !awaitingRegister
 
-    // Snackbars
+    // Snackbars + eventos efímeros
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(error)   { val msg = error   ?: return@LaunchedEffect; snackbarHostState.showSnackbar(msg) }
-    LaunchedEffect(message, awaitingRegister) {
-        val msg = message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(msg)
-        if (awaitingRegister) {
-            awaitingRegister = false
-            onRegistered()
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { ev ->
+            when (ev) {
+                is AuthEvent.Error -> {
+                    if (awaitingRegister) awaitingRegister = false
+                    snackbarHostState.showSnackbar(ev.text)
+                }
+                is AuthEvent.Info -> {
+                    snackbarHostState.showSnackbar(ev.text)
+                }
+                AuthEvent.RegisterSuccess -> {
+                    // La VM completará: verificación + logout + NavigateToLogin
+                    viewModel.requestEmailVerificationAndLogout()
+                }
+                AuthEvent.NavigateToLogin -> {
+                    awaitingRegister = false
+                    onBackToLogin()
+                }
+            }
         }
     }
-
-    // Colores de campos
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = colors.primary,
-        unfocusedBorderColor = colors.primary,
-        focusedTextColor = Color.Black,
-        unfocusedTextColor = Color.Black,
-        focusedLabelColor = Color.DarkGray,
-        unfocusedLabelColor = Color.Gray,
-        cursorColor = colors.primary,
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        focusedLeadingIconColor = Color.Black,
-        unfocusedLeadingIconColor = Color.Black,
-        focusedPlaceholderColor = Color.Gray,
-        unfocusedPlaceholderColor = Color.Gray
-    )
 
     Scaffold(
         containerColor = colors.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-
-        // ── Layout adaptativo: columna (compacto) vs. dos columnas (≥600dp) ──
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,7 +114,7 @@ fun RegisterScreen(
                         .padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Lado izquierdo: logo + título (centrados)
+                    // Izquierda: logo + título
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -156,10 +122,13 @@ fun RegisterScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        LogoAndTitle(logoRes = logoRes, colors = colors, shapes = shapes)
+                        RegisterLogoAndTitle(
+                            logoRes = logoRes,
+                            title = "Crea tu cuenta y únete a The Best Dönner DAM"
+                        )
                     }
 
-                    // Lado derecho: formulario (scroll independiente)
+                    // Derecha: formulario con scroll
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -167,26 +136,17 @@ fun RegisterScreen(
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        FormContents(
-                            name = name,
-                            onName = { name = it },
-                            email = email,
-                            onEmail = { email = it },
-                            emailError = emailError,
-                            password = password,
-                            onPassword = { password = it },
-                            passVisible = showPass,
-                            onTogglePassVisible = { showPass = !showPass },
-                            passError = passError,
-                            confirm = confirm,
-                            onConfirm = { confirm = it },
-                            confirmVisible = showConfirm,
-                            onToggleConfirmVisible = { showConfirm = !showConfirm },
-                            confirmError = confirmError,
-                            fieldColors = fieldColors,
+                        FormRegister(
+                            name = name, onName = { name = it },
+                            email = email, onEmail = { email = it }, emailError = emailError,
+                            password = password, onPassword = { password = it },
+                            passVisible = showPass, onTogglePassVisible = { showPass = !showPass }, passError = passError,
+                            confirm = confirm, onConfirm = { confirm = it },
+                            confirmVisible = showConfirm, onToggleConfirmVisible = { showConfirm = !showConfirm }, confirmError = confirmError,
                             loading = loading,
-                            enabled = !formHasErrors && !loading,
+                            enabled = canSubmit,
                             onSubmit = {
+                                focus.clearFocus()
                                 awaitingRegister = true
                                 viewModel.registerWithEmail(
                                     name = name.trim().ifEmpty { null },
@@ -195,14 +155,15 @@ fun RegisterScreen(
                                     confirmPassword = confirm
                                 )
                             },
-                            formMaxWidth = formMaxWidth,
-                            colors = colors,
-                            shapes = shapes
+                            formMaxWidth = formMaxWidth
                         )
 
                         Spacer(Modifier.height(24.dp))
 
-                        TextButton(onClick = onBackToLogin, enabled = !loading) {
+                        TextButton(
+                            onClick = onBackToLogin,
+                            enabled = !loading && !awaitingRegister
+                        ) {
                             Text("¿Ya tienes cuenta? Inicia sesión", color = colors.primary)
                         }
 
@@ -210,7 +171,7 @@ fun RegisterScreen(
                     }
                 }
             } else {
-                // Compacto (móvil/vertical): columna única (con scroll)
+                // Móvil/vertical
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -220,30 +181,24 @@ fun RegisterScreen(
                 ) {
                     Spacer(Modifier.height(36.dp))
 
-                    LogoAndTitle(logoRes = logoRes, colors = colors, shapes = shapes)
+                    RegisterLogoAndTitle(
+                        logoRes = logoRes,
+                        title = "Crea tu cuenta y únete a The Best Dönner DAM"
+                    )
 
                     Spacer(Modifier.height(24.dp))
 
-                    FormContents(
-                        name = name,
-                        onName = { name = it },
-                        email = email,
-                        onEmail = { email = it },
-                        emailError = emailError,
-                        password = password,
-                        onPassword = { password = it },
-                        passVisible = showPass,
-                        onTogglePassVisible = { showPass = !showPass },
-                        passError = passError,
-                        confirm = confirm,
-                        onConfirm = { confirm = it },
-                        confirmVisible = showConfirm,
-                        onToggleConfirmVisible = { showConfirm = !showConfirm },
-                        confirmError = confirmError,
-                        fieldColors = fieldColors,
+                    FormRegister(
+                        name = name, onName = { name = it },
+                        email = email, onEmail = { email = it }, emailError = emailError,
+                        password = password, onPassword = { password = it },
+                        passVisible = showPass, onTogglePassVisible = { showPass = !showPass }, passError = passError,
+                        confirm = confirm, onConfirm = { confirm = it },
+                        confirmVisible = showConfirm, onToggleConfirmVisible = { showConfirm = !showConfirm }, confirmError = confirmError,
                         loading = loading,
-                        enabled = !formHasErrors && !loading,
+                        enabled = canSubmit,
                         onSubmit = {
+                            focus.clearFocus()
                             awaitingRegister = true
                             viewModel.registerWithEmail(
                                 name = name.trim().ifEmpty { null },
@@ -252,208 +207,21 @@ fun RegisterScreen(
                                 confirmPassword = confirm
                             )
                         },
-                        formMaxWidth = formMaxWidth,
-                        colors = colors,
-                        shapes = shapes
+                        formMaxWidth = formMaxWidth
                     )
 
                     Spacer(Modifier.height(24.dp))
 
-                    TextButton(onClick = onBackToLogin, enabled = !loading) {
+                    TextButton(
+                        onClick = onBackToLogin,
+                        enabled = !loading && !awaitingRegister
+                    ) {
                         Text("¿Ya tienes cuenta? Inicia sesión", color = colors.primary)
                     }
 
                     Spacer(Modifier.height(24.dp))
                 }
             }
-        }
-    }
-}
-
-/* ───────────────────── Helpers dentro del mismo archivo ───────────────────── */
-
-@Composable
-private fun LogoAndTitle(
-    @DrawableRes logoRes: Int?,
-    colors: ColorScheme,
-    shapes: Shapes
-) {
-    if (logoRes != null) {
-        Image(
-            painter = painterResource(id = logoRes),
-            contentDescription = "Logo de DAM Burger",
-            modifier = Modifier
-                .size(160.dp)
-                .clip(shapes.medium)
-        )
-        Spacer(Modifier.height(12.dp))
-    } else {
-        Spacer(Modifier.height(90.dp))
-    }
-
-    Text(
-        "Crea tu cuenta y únete a The Best Dönner DAM",
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = colors.primary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.semantics { heading() }
-    )
-}
-
-@Composable
-private fun FormContents(
-    name: String,
-    onName: (String) -> Unit,
-    email: String,
-    onEmail: (String) -> Unit,
-    emailError: Boolean,
-    password: String,
-    onPassword: (String) -> Unit,
-    passVisible: Boolean,
-    onTogglePassVisible: () -> Unit,
-    passError: Boolean,
-    confirm: String,
-    onConfirm: (String) -> Unit,
-    confirmVisible: Boolean,
-    onToggleConfirmVisible: () -> Unit,
-    confirmError: Boolean,
-    fieldColors: TextFieldColors,
-    loading: Boolean,
-    enabled: Boolean,
-    onSubmit: () -> Unit,
-    formMaxWidth: Dp,
-    colors: ColorScheme,
-    shapes: Shapes
-) {
-    // Nombre (opcional)
-    OutlinedTextField(
-        value = name,
-        onValueChange = onName,
-        label = { Text("Introduzca su nombre (opcional)") },
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Color.Black) },
-        shape = shapes.medium,
-        colors = fieldColors,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = formMaxWidth)
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    // Email
-    OutlinedTextField(
-        value = email,
-        onValueChange = onEmail,
-        label = { Text("Introduzca su email") },
-        singleLine = true,
-        isError = emailError,
-        supportingText = { if (emailError) Text("Introduce un email válido") },
-        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = Color.Black) },
-        shape = shapes.medium,
-        colors = fieldColors,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Email,
-            imeAction = ImeAction.Next
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = formMaxWidth)
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    // Contraseña
-    OutlinedTextField(
-        value = password,
-        onValueChange = onPassword,
-        label = { Text("Introduzca contraseña") },
-        singleLine = true,
-        isError = passError,
-        supportingText = { if (passError) Text("La contraseña debe tener al menos 6 caracteres") },
-        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
-        trailingIcon = {
-            val cd = if (passVisible) "Ocultar contraseña" else "Mostrar contraseña"
-            IconButton(onClick = onTogglePassVisible) {
-                Icon(
-                    imageVector = if (passVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                    contentDescription = cd,
-                    tint = colors.primary
-                )
-            }
-        },
-        visualTransformation = if (passVisible)
-            androidx.compose.ui.text.input.VisualTransformation.None
-        else
-            PasswordVisualTransformation(),
-        shape = shapes.medium,
-        colors = fieldColors,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Next
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = formMaxWidth)
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    // Confirmación
-    OutlinedTextField(
-        value = confirm,
-        onValueChange = onConfirm,
-        label = { Text("Repita la contraseña") },
-        singleLine = true,
-        isError = confirmError,
-        supportingText = { if (confirmError) Text("Las contraseñas no coinciden") },
-        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
-        trailingIcon = {
-            val cd = if (confirmVisible) "Ocultar contraseña" else "Mostrar contraseña"
-            IconButton(onClick = onToggleConfirmVisible) {
-                Icon(
-                    imageVector = if (confirmVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                    contentDescription = cd,
-                    tint = colors.primary
-                )
-            }
-        },
-        visualTransformation = if (confirmVisible)
-            androidx.compose.ui.text.input.VisualTransformation.None
-        else
-            PasswordVisualTransformation(),
-        shape = shapes.medium,
-        colors = fieldColors,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Done
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = formMaxWidth)
-    )
-
-    Spacer(Modifier.height(20.dp))
-
-    // Botón Registrar
-    Button(
-        onClick = onSubmit,
-        enabled = enabled,
-        shape = shapes.large,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colors.primary,
-            contentColor = colors.onPrimary
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = formMaxWidth)
-            .height(48.dp)
-    ) {
-        if (loading) {
-            CircularProgressIndicator(strokeWidth = 2.dp, color = colors.onPrimary)
-        } else {
-            Text("REGISTRAR", fontWeight = FontWeight.Bold)
         }
     }
 }
