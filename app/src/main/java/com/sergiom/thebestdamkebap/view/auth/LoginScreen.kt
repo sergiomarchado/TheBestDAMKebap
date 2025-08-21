@@ -32,9 +32,34 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * Pantalla de Login migrada a eventos efímeros:
- * - Se elimina LaunchedEffect(error) / LaunchedEffect(message)
- * - Se añade colecta de viewModel.events para mostrar snackbars 1-sólo-vez
+ * Pantalla de **inicio de sesión**.
+ *
+ * Responsabilidades:
+ * - Gestiona el formulario local (email/contraseña, mostrar/ocultar password, recordar email).
+ * - Observa estado del [AuthViewModel] (usuario/logging) y **navega** cuando hay sesión.
+ * - Consume eventos efímeros ([AuthEvent]) para mostrar **snackbars 1-vez**.
+ * - Persiste la preferencia y valor del email mediante [UserPrefs] (DataStore).
+ *
+ * Decisiones de UI/UX:
+ * - `Scaffold` con `SnackbarHost` para feedback no intrusivo.
+ * - `imePadding()` para evitar solapamiento con el teclado en edge-to-edge.
+ * - `verticalScroll` + paddings para que el contenido sea alcanzable en pantallas pequeñas.
+ *
+ * Accesibilidad:
+ * - Título marcado con `semantics { heading() }` para lectores de pantalla.
+ *
+ * Navegación:
+ * - Al detectar `user != null` se llama a [onAuthenticated]; el back stack se limpia aguas arriba
+ *   (ver Splash/NavGraph). Aquí solo se dispara el callback.
+ *
+ * Notas:
+ * - Se prioriza `events` frente a `error/message` del VM para evitar re-mostrados.
+ * - Los textos visibles deberían estar en `strings.xml` para i18n (ver `Text(...)`).
+ *
+ * @param onAuthenticated Callback cuando hay usuario autenticado (incluye anónimo/verificado).
+ * @param onGoToRegister Navegar a registro.
+ * @param logoRes Recurso opcional de logo para la cabecera.
+ * @param viewModel Inyectado con Hilt; expone estado/acciones de Auth.
  */
 @Composable
 fun LoginScreen(
@@ -47,26 +72,26 @@ fun LoginScreen(
     val shapes = MaterialTheme.shapes
     val focus = LocalFocusManager.current
 
-    // VM state
+    // VM state (lifecycle-aware).
     val user    by viewModel.user.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
-    // NOTE: error/message siguen existiendo en VM por compatibilidad, pero aquí no se usan ya.
 
-    // Local form
+    // Estado del formulario (saveable para restaurar en rotación/proceso).
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var rememberMe by rememberSaveable { mutableStateOf(false) }
 
-    // Snackbars
+    // Host de snackbars para eventos efímeros.
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Reglas de habilitación del botón de login.
     val canSubmit = email.isNotBlank() && password.isNotBlank() && !loading
 
-    // Navegación cuando ya hay usuario
+    // Si ya hay usuario (por ejemplo, tras login/registro), navega fuera de login.
     LaunchedEffect(user?.uid) { if (user != null) onAuthenticated() }
 
-    // ✅ NUEVO: eventos efímeros (snackbars 1 vez)
+    // Colecta de eventos efímeros del VM → snackbars one-shot (sin reemitir tras recomposición).
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
@@ -78,16 +103,16 @@ fun LoginScreen(
         }
     }
 
-    // DataStore
+    // Preferencias/DataStore (recordar email).
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val remembered by remember { UserPrefs.rememberEmailFlow(context) }.collectAsState(initial = false)
     val savedEmail by remember { UserPrefs.savedEmailFlow(context) }.collectAsState(initial = "")
 
-    // Sync checkbox
+    // Sincroniza el check con el valor almacenado.
     LaunchedEffect(remembered) { rememberMe = remembered }
 
-    // Cargar email guardado una sola vez
+    // Carga el email guardado una sola vez cuando `remembered` es true.
     var loadedEmail by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(remembered, savedEmail) {
         if (remembered && !loadedEmail) {
@@ -104,15 +129,17 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .imePadding()
+                .imePadding()     // Evita que el teclado tape los campos de texto.
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(36.dp))
 
+            // Cabecera de branding
             AuthLogo(logoRes, shapes)
 
+            // Título (accesible como encabezado)
             Text(
                 text = "¡Bienvenid@! Inicia sesión y disfruta del sabor mejor desarrollado...",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -123,6 +150,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(18.dp))
 
+            // Campo email
             EmailField(
                 value = email,
                 onValueChange = { email = it },
@@ -131,6 +159,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(12.dp))
 
+            // Campo contraseña
             PasswordField(
                 value = password,
                 onValueChange = { password = it },
@@ -138,6 +167,7 @@ fun LoginScreen(
                 onToggleVisible = { passwordVisible = !passwordVisible },
                 enabled = !loading,
                 onDone = {
+                    // Enviar con IME action (Done): cierra teclado y lanza login.
                     focus.clearFocus()
                     viewModel.signInWithEmail(email.trim(), password)
                 }
@@ -145,6 +175,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(10.dp))
 
+            // "Recordar email" (persistencia en DataStore)
             RememberEmailRow(
                 checked = rememberMe,
                 onToggle = { checked ->
@@ -161,6 +192,7 @@ fun LoginScreen(
             Spacer(Modifier.height(8.dp))
 
 
+            // "He olvidado mi contraseña"
             ForgotPasswordRow(
                 onClick = { viewModel.sendPasswordReset(email) },
                 enabled = !loading
@@ -168,6 +200,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(18.dp))
 
+            // Botones de acción (Login / Register)
             AuthButtonsRow(
                 loading = loading,
                 enabledLogin = canSubmit,
@@ -185,6 +218,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(10.dp))
 
+            // Acceso como invitado (crea sesión anónima si no existe)
             GuestAccess(
                 onClick = { viewModel.signInAnonymouslyIfNeeded() },
                 enabled = !loading

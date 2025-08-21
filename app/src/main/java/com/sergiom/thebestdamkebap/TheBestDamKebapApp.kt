@@ -27,6 +27,21 @@ import dagger.hilt.android.HiltAndroidApp
  *   Esto evita depender de la generación de BuildConfig y funciona igual.
  * - No se capturan excepciones aquí: si App Check no puede instalarse, preferimos
  *   que falle visible en desarrollo para detectarlo pronto.
+ *
+ * Requisitos previos / comprobaciones rápidas:
+ * - Manifest: declarar `android:name=".TheBestDamKebapApp"` en `<application>`.
+ * - Google Services: tener `google-services.json` del proyecto correcto (appId/sha) y
+ *   aplicar el plugin `com.google.gms.google-services`.
+ * - Dependencias: usar BoM de Firebase y añadir los módulos de App Check (debug/playintegrity).
+ * - Consola Firebase: habilitar **App Check** por servicio (Firestore/Storage/RTDB/Functions)
+ *   y, en debug, registrar el **debug token** si activas enforcement.
+ *
+ * Compatibilidad/entorno:
+ * - `PlayIntegrity` requiere dispositivos con Google Play Services y distribución por Play;
+ *   en emuladores o tiendas sin Play no habrá token válido (con enforcement activo, se bloquearán
+ *   las peticiones).
+ * - App Check no “rompe” en sí mismo: el fallo se manifiesta cuando el backend con enforcement
+ *   **rechaza** la solicitud; útil para probar rutas de error.
  */
 @HiltAndroidApp
 class TheBestDamKebapApp : Application() {

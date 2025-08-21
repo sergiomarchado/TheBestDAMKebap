@@ -16,17 +16,19 @@ import javax.inject.Singleton
 /**
  * Módulo de inyección de dependencias para los servicios de Firebase.
  *
+ * Instalación/vida:
  * - Se instala en [SingletonComponent], por lo que cada @Provides aquí devuelve una
- *   **única instancia** (singleton) que vive durante tod el ciclo de vida de la app.
- * - ¿Por qué inyectar en lugar de acceder estáticamente?
- *   * Centralizamos la configuración (p. ej. FirestoreSettings) en un único sitio.
- *   * Hacemos el código **testeable**: en tests se puede reemplazar por dobles/fakes.
- *   * Evitamos “new”/singletons manuales dispersos por la app.
+ *   **única instancia** (singleton) que vive durante todo el ciclo de vida del proceso.
  *
- * Nota App Check:
- * Este módulo no inicializa App Check; eso se hace en la clase Application.
- * Si en la consola activas el “enforcement” de App Check, las llamadas de estas instancias
- * ya viajarán con el token correspondiente.
+ * ¿Por qué inyectar en lugar de acceder estáticamente?
+ * - Centraliza configuración (p. ej., `FirestoreSettings`) en un único punto.
+ * - Hace el código **testeable** (en tests se pueden sustituir por dobles/fakes).
+ * - Evita “new”/singletons manuales dispersos por la app.
+ *
+ * App Check:
+ * - Este módulo **no** inicializa App Check; eso se hace en la clase `Application`.
+ *   Si en la consola activas el “enforcement”, las llamadas de estas instancias
+ *   ya viajarán con el token correspondiente.
  */
 @Module
 @InstallIn(SingletonComponent::class)

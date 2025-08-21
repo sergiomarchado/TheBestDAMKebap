@@ -40,6 +40,29 @@ import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+/**
+ * Pantalla de **registro** con email/contraseña.
+ *
+ * Responsabilidades:
+ * - Gestiona estado local del formulario (nombre opcional, email, password, confirmación).
+ * - Valida entrada mínima en cliente (formato email, longitud password, confirmación).
+ * - Observa `loading` del [AuthViewModel] y responde a **eventos efímeros** ([AuthEvent])
+ *   para mostrar snackbars y coordinar navegación post-registro.
+ * - Adapta layout a pantallas anchas usando [BoxWithConstraints] (2 columnas ≥ 600dp).
+ *
+ * Flujo:
+ * 1) Usuario envía → se marca `awaitingRegister` para prevenir reintentos rápidos.
+ * 2) VM emite `RegisterSuccess` → se llama a `requestEmailVerificationAndLogout()`.
+ * 3) VM emite `NavigateToLogin` → se limpia `awaitingRegister` y se llama a [onBackToLogin].
+ *
+ * UX/Accesibilidad:
+ * - `imePadding()` en el contenedor raíz para evitar que el teclado tape campos/botones.
+ * - En móviles, se añade `verticalScroll` para alcanzar todo el contenido.
+ *
+ * @param onBackToLogin Acción para volver a Login (el grafo ya gestiona el back stack).
+ * @param logoRes Recurso opcional para branding en cabecera.
+ * @param viewModel VM inyectado con Hilt que expone `loading` y `events`.
+ */
 @Composable
 fun RegisterScreen(
     onBackToLogin: () -> Unit = {},
@@ -49,10 +72,10 @@ fun RegisterScreen(
     val colors = MaterialTheme.colorScheme
     val focus = LocalFocusManager.current
 
-    // VM
+    // VM: sólo necesitamos el estado de carga; los eventos se manejan abajo.
     val loading by viewModel.loading.collectAsStateWithLifecycle()
 
-    // Form state
+    // Estado del formulario (saveable → sobrevive a rotaciones/proceso si es posible).
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -61,7 +84,7 @@ fun RegisterScreen(
     var showConfirm by rememberSaveable { mutableStateOf(false) }
     var awaitingRegister by rememberSaveable { mutableStateOf(false) }
 
-    // Validación local
+    // Validación local mínima (no sustituye a validación en servidor/VM).
     val emailError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val passError = password.isNotBlank() && password.length < 6
     val confirmError = confirm.isNotBlank() && confirm != password
@@ -69,20 +92,20 @@ fun RegisterScreen(
     val formHasErrors = emailError || passError || confirmError || mandatoryMissing
     val canSubmit = !formHasErrors && !loading && !awaitingRegister
 
-    // Snackbars + eventos efímeros
+    // Snackbars + eventos efímeros del VM.
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
                 is AuthEvent.Error -> {
-                    if (awaitingRegister) awaitingRegister = false
+                    if (awaitingRegister) awaitingRegister = false // re-habilita submit tras error
                     snackbarHostState.showSnackbar(ev.text)
                 }
                 is AuthEvent.Info -> {
                     snackbarHostState.showSnackbar(ev.text)
                 }
                 AuthEvent.RegisterSuccess -> {
-                    // La VM completará: verificación + logout + NavigateToLogin
+                    // Al registrarse: solicitar verificación y hacer logout (flujo gestionado por VM).
                     viewModel.requestEmailVerificationAndLogout()
                 }
                 AuthEvent.NavigateToLogin -> {
@@ -101,19 +124,20 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .imePadding()
+                .imePadding()   // evita solapamiento con teclado
         ) {
             val isWide = maxWidth >= 600.dp
             val formMaxWidth: Dp = if (isWide) 480.dp else Dp.Unspecified
 
             if (isWide) {
+                // Layout 2 columnas para pantallas anchas.
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Izquierda: logo + título
+                    // Izquierda: logo + título (centrados verticalmente).
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -127,7 +151,7 @@ fun RegisterScreen(
                         )
                     }
 
-                    // Derecha: formulario con scroll
+                    // Derecha: formulario con scroll independiente.
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -145,6 +169,7 @@ fun RegisterScreen(
                             loading = loading,
                             enabled = canSubmit,
                             onSubmit = {
+                                // Envío del formulario
                                 focus.clearFocus()
                                 awaitingRegister = true
                                 viewModel.registerWithEmail(
@@ -170,7 +195,7 @@ fun RegisterScreen(
                     }
                 }
             } else {
-                // Móvil/vertical
+                // Layout móvil/vertical (scroll en toda la pantalla).
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

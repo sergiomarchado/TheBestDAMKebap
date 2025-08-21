@@ -22,7 +22,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
+/**
+ * Barra superior de **Home** (Material 3) con:
+ * - Logo a la izquierda (si [`logoRes`] no es nulo).
+ * - Píldora de usuario centrada (icono + nombre + flecha) que abre un **menú contextual**
+ *   con acciones de sesión (Iniciar sesión / Registrarse / Cerrar sesión).
+ * - Botón hamburguesa a la derecha para abrir el **drawer**.
+ *
+ * Decisiones de diseño:
+ * - Altura personalizada (82.dp) para alojar un logo alto (62.dp).
+ * - Línea inferior dibujada con `drawBehind` para separar visualmente.
+ * - Píldora con fondo semitransparente sobre `onBackground` para contraste suave.
+ *
+ * Accesibilidad:
+ * - Los iconos **no esenciales** usan `contentDescription = null` al acompañarse de texto.
+ * - El botón de menú sí expone `contentDescription` (“Abrir menú”).
+ *
+ * Internacionalización:
+ * - Los textos visibles (“Logo”, “Iniciar sesión”, “Registrarse”, “Cerrar sesión”, “Abrir menú”)
+ *   deberían residir en `strings.xml` (se mantienen inline por compatibilidad).
+ *
+ * @param logoRes Recurso opcional del logo (izquierda).
+ * @param userLabel Etiqueta del usuario mostrada en la píldora (p. ej., “Invitado” o nombre/email).
+ * @param userIsGuest `true` si el usuario es invitado (muestra acciones de login/registro).
+ * @param onOpenLogin Callback al seleccionar “Iniciar sesión”.
+ * @param onOpenRegister Callback al seleccionar “Registrarse”.
+ * @param onSignOut Callback al seleccionar “Cerrar sesión”.
+ * @param onMenuClick Callback del botón hamburguesa (abrir drawer).
+ * @param modifier Modificador para personalización externa del `TopAppBar`.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
@@ -35,6 +63,7 @@ fun HomeTopBar(
     onSignOut: () -> Unit = {},
     onMenuClick: () -> Unit = {},
 ) {
+    // Estado local del menú de usuario (abierto/cerrado)
     var userMenuOpen by remember { mutableStateOf(false) }
 
     Column {
@@ -42,6 +71,7 @@ fun HomeTopBar(
             modifier = modifier
                 .padding(top = 16.dp, bottom = 6.dp)
                 .height(82.dp) // barra algo más alta para alojar bien el logo de 62.dp
+                // Línea inferior sutil (separador)
                 .drawBehind {
                     val y = size.height - 1f
                     drawLine(
@@ -73,7 +103,7 @@ fun HomeTopBar(
                     contentAlignment = Alignment.Center
                 ) {
                     if (!userLabel.isNullOrBlank()) {
-                        // anclamos el menú a ESTA caja
+                        // Anclamos el menú a ESTA caja para que abra justo debajo.
                         Box(
                             modifier = Modifier
                                 .background(
@@ -139,7 +169,7 @@ fun HomeTopBar(
                     Icon(
                         imageVector = Icons.Outlined.Menu,
                         contentDescription = "Abrir menú",
-                        modifier = Modifier.size(32.dp), // ↑ antes 28.dp
+                        modifier = Modifier.size(48.dp), // ↑ antes 28.dp
                         tint = Color.White
                     )
                 }

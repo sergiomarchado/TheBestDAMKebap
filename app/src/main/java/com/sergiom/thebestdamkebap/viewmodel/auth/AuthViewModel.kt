@@ -27,15 +27,37 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * ViewModel responsable del estado de autenticación.
+ * **AuthViewModel**
  *
- * Mantiene API pública:
- *  - Flujos: [user], [loading], [error], [message]
- *  - Acciones: signInAnonymouslyIfNeeded, signInWithEmail, registerWithEmail, sendPasswordReset, signOut
+ * Orquesta el **estado de autenticación** y expone una API reactiva para la UI.
  *
- * Añadidos:
- *  - [events]: flujo de eventos efímeros (snackbars) para futura migración UI.
- *  - [consumeError] / [consumeMessage]: para limpiar transitorios y evitar re-mostrado tras rotación.
+ * ### Estado expuesto
+ * - [user]: `FirebaseUser?` actual (incluye anónimo / verificado / no verificado).
+ * - [loading]: bandera de operación en curso (login, registro, reset, etc.).
+ * - [error] / [message]: transitorios para feedback en UI (consumibles).
+ * - [events]: `SharedFlow` de eventos efímeros (snackbars, navegación).
+ *
+ * ### Acciones principales
+ * - `signInAnonymouslyIfNeeded()`: arranque sin fricción si no hay sesión.
+ * - `signInWithEmail(email, password)`: login con verificación de email obligatoria.
+ * - `registerWithEmail(name, email, password, confirmPassword)`: registro (linkea si venías como invitado).
+ * - `sendPasswordReset(email)`: email de restablecimiento.
+ * - `signOut()`: cierra sesión.
+ * - `requestEmailVerificationAndLogout()`: envía verificación y saca a login.
+ *
+ * ### Decisiones de diseño
+ * - **Listener de Auth**: se mantiene un [FirebaseAuth.AuthStateListener] para reflejar cambios
+ *   del SDK en [_user]; se añade en `init` y se quita en `onCleared()`.
+ * - **Errores presentables**: `Throwable.toUserMessage()` mapea códigos de `FirebaseAuthException`
+ *   a textos de usuario; `devHintOrNull()` añade una pista técnica para Logcat.
+ * - **Transitorios**: `consumeError()` / `consumeMessage()` permiten que la UI “limpie” los
+ *   valores tras mostrarlos y evite re-mostrados en recomposición.
+ *
+ * ### Consideraciones
+ * - **Verificación de email**: el login con email bloquea usuarios no verificados
+ *   (se hace signOut y se informa), mientras que el registro ofrece `requestEmailVerificationAndLogout()`.
+ * - **await() de Task**: se implementa con `suspendCancellableCoroutine`. La cancelación de la coroutine
+ *   **no cancela** el `Task` de Firebase (documentado más abajo).
  */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -48,15 +70,20 @@ class AuthViewModel @Inject constructor(
 
     /* ─────────── Estado observable UI (compatible) ─────────── */
 
+
+    /** Usuario actual (null si no hay sesión; puede ser anónimo). */
     private val _user = MutableStateFlow(auth.currentUser)
     val user: StateFlow<FirebaseUser?> = _user.asStateFlow()
 
+    /** Indica si hay una operación de autenticación en curso. */
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
+    /** Texto de error presentable (consumible por la UI). */
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    /** Mensaje informativo presentable (consumible por la UI). */
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
@@ -91,7 +118,13 @@ class AuthViewModel @Inject constructor(
             // No emitimos mensaje de éxito aquí para no molestar.
         }
     }
-
+    /**
+     * Inicio de sesión con email/contraseña.
+     *
+     * Reglas:
+     * - Si el usuario no está verificado: se hace `signOut()` y se informa.
+     * - En éxito: se actualiza [_user] (el listener también lo haría, pero lo reflejamos de inmediato).
+     */
     fun signInWithEmail(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             emitError("Introduce email y contraseña.")
@@ -112,8 +145,11 @@ class AuthViewModel @Inject constructor(
 
     /**
      * Registro con email/contraseña.
-     * - Si el usuario actual es anónimo: hace link para conservar su UID/datos.
-     * - Si no: crea cuenta nueva y queda autenticado con ella.
+     *
+     * Comportamiento:
+     * - Si el usuario actual es anónimo → **link** con las credenciales para conservar UID/datos.
+     * - En caso contrario → crea cuenta y autentica con ella.
+     * - Si `name` no es nulo/vacío → actualiza `displayName`.
      */
     fun registerWithEmail(
         name: String?,
@@ -183,7 +219,13 @@ class AuthViewModel @Inject constructor(
 // ─────────────────────────────────────────────────────────────────────────────
 // Verificación por email
 // ─────────────────────────────────────────────────────────────────────────────
-
+    /**
+     * Solicita envío de email de verificación y luego **desconecta** al usuario,
+     * emitiendo un evento de navegación a login para cerrar el flujo de registro.
+     *
+     * - Gestiona específicamente `ERROR_TOO_MANY_REQUESTS` con un mensaje amable.
+     * - En cualquier caso (éxito o error), se cierra sesión en `finally`.
+     */
     fun requestEmailVerificationAndLogout() {
         launchWithLoading {
             val u = auth.currentUser
@@ -231,7 +273,10 @@ class AuthViewModel @Inject constructor(
         _message.value = text
         _events.tryEmit(AuthEvent.Info(text))
     }
-
+    /**
+     * Ejecuta un bloque suspensivo mostrando `loading` y gestionando errores
+     * con mapeo a mensajes de usuario + pista técnica en logs.
+     */
     private fun launchWithLoading(block: suspend () -> Unit) {
         _loading.value = true
         // Al iniciar una acción cancelamos transitorios previos
@@ -255,11 +300,11 @@ class AuthViewModel @Inject constructor(
         suspendCancellableCoroutine { cont ->
             addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    cont.resume(task.result)
+                    val result = task.result
+                    if (cont.isActive) cont.resume(result)
                 } else {
-                    cont.resumeWithException(
-                        task.exception ?: RuntimeException("Error desconocido en Firebase Task")
-                    )
+                    val ex = task.exception ?: RuntimeException("Error desconocido en Firebase Task")
+                    if (cont.isActive) cont.resumeWithException(ex)
                 }
             }
             // Nota: la cancelación de la coroutine no cancela el Task de Firebase.
@@ -304,10 +349,14 @@ class AuthViewModel @Inject constructor(
         else -> this.message
     }
 
+    /** `true` si no hay usuario o es anónimo. Útil para UI (píldora de usuario). */
+    @Suppress("unused")
     val isGuest: StateFlow<Boolean> =
         user.map { it == null || it.isAnonymous }
             .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    /** Etiqueta de usuario: “Invitado”, displayName o email. */
+    @Suppress("unused")
     val userLabel: StateFlow<String> =
         user.map { u ->
             when {
