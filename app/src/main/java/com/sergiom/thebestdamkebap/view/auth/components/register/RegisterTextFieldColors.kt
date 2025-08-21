@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.login
+package com.sergiom.thebestdamkebap.view.auth.components.register
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -7,16 +7,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 @Composable
-internal fun brandedTextFieldColors(): TextFieldColors {
-    val colors = MaterialTheme.colorScheme
+internal fun registerTextFieldColors(): TextFieldColors {
+    val c = MaterialTheme.colorScheme
     return OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = colors.primary,
-        unfocusedBorderColor = colors.primary,
+        focusedBorderColor = c.primary,
+        unfocusedBorderColor = c.primary,
         focusedTextColor = Color.Black,
         unfocusedTextColor = Color.Black,
         focusedLabelColor = Color.DarkGray,
         unfocusedLabelColor = Color.Gray,
-        cursorColor = colors.primary,
+        cursorColor = c.primary,
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
         focusedLeadingIconColor = Color.Black,

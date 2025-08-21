@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.login
+package com.sergiom.thebestdamkebap.view.auth.components.login
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
             painter = painterResource(id = logoRes),
             contentDescription = "Logo de DAM Burger",
             modifier = Modifier
-                .size(160.dp)
+                .size(250.dp)
                 .clip(shapes.medium)
         )
         Spacer(Modifier.height(12.dp))

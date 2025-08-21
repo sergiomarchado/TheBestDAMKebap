@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth
+package com.sergiom.thebestdamkebap.view.auth
 
 import android.util.Patterns
 import androidx.annotation.DrawableRes
@@ -34,15 +34,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sergiom.thebestdamkebap.ui.auth.components.register.FormRegister
-import com.sergiom.thebestdamkebap.ui.auth.components.register.RegisterLogoAndTitle
+import com.sergiom.thebestdamkebap.view.auth.components.register.FormRegister
+import com.sergiom.thebestdamkebap.view.auth.components.register.RegisterLogoAndTitle
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun RegisterScreen(
-    onRegistered: () -> Unit = {},   // (Actualmente no se usa; puedes eliminarlo si quieres)
     onBackToLogin: () -> Unit = {},
     @DrawableRes logoRes: Int? = null,
     viewModel: AuthViewModel = hiltViewModel()

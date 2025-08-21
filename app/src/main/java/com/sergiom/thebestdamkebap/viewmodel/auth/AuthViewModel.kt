@@ -14,9 +14,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
@@ -167,46 +170,19 @@ class AuthViewModel @Inject constructor(
 
     /** Cierra sesión actual. */
     fun signOut() {
-        // No usamos loading aquí para que sea instantáneo visualmente.
         try {
             auth.signOut()
+            _events.tryEmit(AuthEvent.Info("Has cerrado sesión."))
+
         } catch (t: Throwable) {
             emitError(t.toUserMessage())
             t.devHintOrNull()?.let { Log.w(TAG, it, t) }
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Verificación por email
 // ─────────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Envía un correo de verificación al email del usuario actual.
-     * Requisitos:
-     * - Debe haber sesión iniciada y NO ser anónima.
-     * - Si ya está verificado, avisamos y no enviamos otro.
-     */
-    fun requestEmailVerification() {
-        val current = auth.currentUser
-        if (current == null) {
-            emitError("Inicia sesión para poder verificar tu email.")
-            return
-        }
-        if (current.isAnonymous) {
-            emitError("La sesión de invitado no admite verificación por email.")
-            return
-        }
-        if (current.isEmailVerified) {
-            emitMessage("Tu email ya está verificado.")
-            return
-        }
-
-        launchWithLoading {
-            // Respetará el setLanguageCode("es") si lo configuraste arriba
-            current.sendEmailVerification().await()
-            emitMessage("Te hemos enviado un correo de verificación.")
-        }
-    }
 
     fun requestEmailVerificationAndLogout() {
         launchWithLoading {
@@ -233,25 +209,6 @@ class AuthViewModel @Inject constructor(
                 try { auth.signOut() } catch (_: Throwable) {}
                 _events.tryEmit(AuthEvent.NavigateToLogin)
             }
-        }
-    }
-
-    /**
-     * Vuelve a cargar (desde servidor) la información del usuario actual.
-     * Útil tras pulsar el enlace de verificación y volver a la app.
-     */
-    fun reloadUser(showMessage: Boolean = false) {
-        val current = auth.currentUser
-        if (current == null) {
-            emitError("No hay ninguna sesión activa.")
-            return
-        }
-
-        launchWithLoading {
-            current.reload().await()
-            // AuthStateListener también actualiza, pero hacemos set explícito por inmediatez
-            _user.value = auth.currentUser
-            if (showMessage) emitMessage("Datos de cuenta actualizados.")
         }
     }
 
@@ -346,4 +303,18 @@ class AuthViewModel @Inject constructor(
         }
         else -> this.message
     }
+
+    val isGuest: StateFlow<Boolean> =
+        user.map { it == null || it.isAnonymous }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val userLabel: StateFlow<String> =
+        user.map { u ->
+            when {
+                u == null || u.isAnonymous -> "Invitado"
+                !u.displayName.isNullOrBlank() -> u.displayName!!
+                !u.email.isNullOrBlank() -> u.email!!
+                else -> "Usuario"
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, "Invitado")
 }

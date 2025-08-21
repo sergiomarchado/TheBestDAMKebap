@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.login
+package com.sergiom.thebestdamkebap.view.auth.components.login
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

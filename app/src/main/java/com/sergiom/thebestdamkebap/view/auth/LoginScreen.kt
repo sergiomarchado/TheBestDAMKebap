@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth
+package com.sergiom.thebestdamkebap.view.auth
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.*
@@ -19,7 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sergiom.thebestdamkebap.data.UserPrefs
-import com.sergiom.thebestdamkebap.ui.auth.components.login.*
+import com.sergiom.thebestdamkebap.view.auth.components.login.AuthButtonsRow
+import com.sergiom.thebestdamkebap.view.auth.components.login.AuthLogo
+import com.sergiom.thebestdamkebap.view.auth.components.login.EmailField
+import com.sergiom.thebestdamkebap.view.auth.components.login.ForgotPasswordRow
+import com.sergiom.thebestdamkebap.view.auth.components.login.GuestAccess
+import com.sergiom.thebestdamkebap.view.auth.components.login.PasswordField
+import com.sergiom.thebestdamkebap.view.auth.components.login.RememberEmailRow
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -153,6 +159,7 @@ fun LoginScreen(
             )
 
             Spacer(Modifier.height(8.dp))
+
 
             ForgotPasswordRow(
                 onClick = { viewModel.sendPasswordReset(email) },

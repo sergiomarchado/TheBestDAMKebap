@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.register
+package com.sergiom.thebestdamkebap.view.auth.components.register
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image

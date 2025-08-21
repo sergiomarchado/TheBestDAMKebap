@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.register
+package com.sergiom.thebestdamkebap.view.auth.components.register
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,14 +20,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 @Composable
-internal fun ConfirmPasswordFieldRegister(
+internal fun PasswordFieldRegister(
     modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     visible: Boolean,
     onToggleVisible: () -> Unit,
     isError: Boolean,
-    imeAction: ImeAction = ImeAction.Done,
+    imeAction: ImeAction = ImeAction.Next,
     onImeAction: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -35,10 +35,10 @@ internal fun ConfirmPasswordFieldRegister(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text("Repita la contraseña") },
+        label = { Text("Introduzca contraseña") },
         singleLine = true,
         isError = isError,
-        supportingText = { if (isError) Text("Las contraseñas no coinciden") },
+        supportingText = { if (isError) Text("La contraseña debe tener al menos 6 caracteres") },
         leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
         trailingIcon = {
             val cd = if (visible) "Ocultar contraseña" else "Mostrar contraseña"
@@ -62,7 +62,7 @@ internal fun ConfirmPasswordFieldRegister(
         ),
         keyboardActions = KeyboardActions(
             onNext = { onImeAction?.invoke() },
-            onDone = { onImeAction?.invoke() }
+            onDone = { onImeAction?.invoke() }   // <- Opción A: envolvemos () -> Unit
         ),
         modifier = modifier.fillMaxWidth()
     )

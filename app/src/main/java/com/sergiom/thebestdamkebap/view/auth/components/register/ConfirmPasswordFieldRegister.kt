@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.ui.auth.components.login
+package com.sergiom.thebestdamkebap.view.auth.components.register
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,30 +20,33 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 @Composable
-internal fun PasswordField(
+internal fun ConfirmPasswordFieldRegister(
+    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     visible: Boolean,
     onToggleVisible: () -> Unit,
-    onDone: () -> Unit,
-    enabled: Boolean = true
+    isError: Boolean,
+    imeAction: ImeAction = ImeAction.Done,
+    onImeAction: (() -> Unit)? = null,
 ) {
+    val colors = MaterialTheme.colorScheme
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        enabled = enabled,
+        label = { Text("Repita la contraseña") },
         singleLine = true,
-        label = { Text("Contraseña") },
+        isError = isError,
+        supportingText = { if (isError) Text("Las contraseñas no coinciden") },
         leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
         trailingIcon = {
             val cd = if (visible) "Ocultar contraseña" else "Mostrar contraseña"
-            IconButton(
-                onClick = onToggleVisible
-            ) {
+            IconButton(onClick = onToggleVisible) {
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                     contentDescription = cd,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = colors.primary
                 )
             }
         },
@@ -52,14 +55,16 @@ internal fun PasswordField(
         else
             PasswordVisualTransformation(),
         shape = MaterialTheme.shapes.medium,
-        colors = brandedTextFieldColors(),
+        colors = registerTextFieldColors(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Password,
-            imeAction = if (enabled) ImeAction.Done else ImeAction.None
+            imeAction = imeAction
         ),
         keyboardActions = KeyboardActions(
-            onDone = { if (enabled) onDone() }
+            onNext = { onImeAction?.invoke() },
+            onDone = { onImeAction?.invoke() }
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     )
 }
+
