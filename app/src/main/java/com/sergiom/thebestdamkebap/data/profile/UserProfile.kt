@@ -9,6 +9,7 @@ import java.util.Date
  * Notas:
  * - `email` se denormaliza para facilitar listados desde Angular/Backoffice (no usamos Auth aquí).
  * - `birthDate` se almacena como `Date` (Firestore Timestamp). En UI lo formatearemos.
+ * - `defaultAddressId` referencia (por id) la dirección predeterminada en `/users/{uid}/addresses`.
  * - `createdAt/updatedAt` se rellenan en servidor con @ServerTimestamp.
  */
 data class UserProfile(
@@ -18,6 +19,7 @@ data class UserProfile(
     val familyName: String? = null,
     val phone: String? = null,
     val birthDate: Date? = null,
+    val defaultAddressId: String? = null,   // ← NUEVO: id de la dirección predeterminada
     @ServerTimestamp var createdAt: Date? = null,
     @ServerTimestamp var updatedAt: Date? = null
 )
@@ -30,6 +32,6 @@ data class ProfileInput(
     val givenName: String? = null,
     val familyName: String? = null,
     val phone: String? = null,
-    /** Epoch millis para la fecha de nacimiento; null para borrar; */
+    /** Epoch millis para la fecha de nacimiento; null para borrar. */
     val birthDateMillis: Long? = null,
 )

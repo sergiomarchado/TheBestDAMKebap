@@ -22,11 +22,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -35,12 +31,11 @@ import com.sergiom.thebestdamkebap.view.home.components.HomeBottomBar
 import com.sergiom.thebestdamkebap.view.home.components.HomeDrawerContent
 import com.sergiom.thebestdamkebap.view.home.components.HomeNavItem
 import com.sergiom.thebestdamkebap.view.home.components.HomeTopBar
-import com.sergiom.thebestdamkebap.view.home.components.ManageAddressesSheet
 import kotlinx.coroutines.launch
 
 /**
- * Contenedor visual de Home: Drawer (cuenta) + Scaffold (Top/Bottom bar, FAB, Snackbars)
- * + Nav interno. Maneja la apertura del sheet de **direcciones**.
+ * Contenedor visual de Home: Drawer + Scaffold + Nav interno (exploración).
+ * El ítem "Mis direcciones" navega a la pantalla de lista del grafo interno.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +56,7 @@ fun HomeShell(
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Items del bottom bar (navegación interna de exploración)
+    // Usa el único HomeRoutes definido en tu HomeNavGraph
     val items = listOf(
         HomeNavItem(HomeRoutes.HOME,     Icons.Outlined.Home,           "Inicio"),
         HomeNavItem(HomeRoutes.OFFERS,   Icons.Outlined.LocalOffer,     "Ofertas"),
@@ -69,49 +64,44 @@ fun HomeShell(
     )
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
-    // Sheet de direcciones
-    var showAddressesSheet by remember { mutableStateOf(false) }
-
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet (
+            ModalDrawerSheet(
                 drawerContainerColor = MaterialTheme.colorScheme.tertiary,
-                drawerContentColor = MaterialTheme.colorScheme.onPrimary
+                drawerContentColor = MaterialTheme.colorScheme.onTertiary
             ) {
                 HomeDrawerContent(
                     userLabel = userLabel,
                     userEmail = userEmail,
                     userIsGuest = userIsGuest,
                     onOpenProfile = {
-                        navController.navigate(HomeRoutes.PROFILE) {
-                            launchSingleTop = true
-                        }
                         scope.launch { drawerState.close() }
+                        navController.navigate(HomeRoutes.PROFILE) { launchSingleTop = true }
                     },
                     onManageAddresses = {
-                        showAddressesSheet = true
                         scope.launch { drawerState.close() }
+                        navController.navigate(HomeRoutes.ADDRESSES) { launchSingleTop = true }
                     },
                     onOpenOrders = {
-                        navController.navigate(HomeRoutes.ORDERS) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
+                        navController.navigate(HomeRoutes.ORDERS) { launchSingleTop = true }
                     },
                     onOpenSettings = {
-                        navController.navigate(HomeRoutes.SETTINGS) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
+                        navController.navigate(HomeRoutes.SETTINGS) { launchSingleTop = true }
                     },
                     onLogin = {
-                        onOpenLogin()
                         scope.launch { drawerState.close() }
+                        onOpenLogin()
                     },
                     onRegister = {
-                        onOpenRegister()
                         scope.launch { drawerState.close() }
+                        onOpenRegister()
                     },
                     onLogout = {
-                        onSignOut()
                         scope.launch { drawerState.close() }
+                        onSignOut()
                     }
                 )
             }
@@ -161,14 +151,4 @@ fun HomeShell(
             content(padding, navController)
         }
     }
-
-    // Sheet (modal) para gestionar direcciones
-    ManageAddressesSheet(
-        show = showAddressesSheet,
-        onDismiss = { showAddressesSheet = false },
-        addresses = emptyList(), // TODO: inyectar desde VM cuando lo tengas
-        onAddAddress = { /* TODO: abrir form de nueva dirección */ },
-        onEditAddress = { /* TODO: abrir form con datos */ },
-        onDeleteAddress = { /* TODO: pedir confirmación y borrar */ }
-    )
 }

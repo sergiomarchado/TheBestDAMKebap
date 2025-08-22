@@ -24,6 +24,15 @@ object AuthDestinations {
 
 object HomeDestinations {
     const val HOME_MAIN = "home/main"
-    // Más rutas de Home en el futuro: const val CART = "home/cart", etc.
+    // NUEVO: Direcciones
+    const val ADDRESS_LIST = "home/addresses"
+    const val ADDRESS_EDIT = "home/addresses/edit?aid={aid}"
+    object AddressEdit {
+        const val ARG_AID = "aid"
+        fun routeFor(aid: String? = null): String =
+            if (aid.isNullOrBlank()) "home/addresses/edit"
+            else "home/addresses/edit?aid=$aid"
+    }
+
 }
 
