@@ -17,14 +17,22 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * ViewModel de **Mi Perfil**.
+ *
+ * - Observa `/users/{uid}` desde el repositorio (Flow compartido por UID).
+ * - Si el doc no existe, llama una sola vez a [ProfileRepository.ensureProfile] para
+ *   crearlo con datos básicos (sin sobreescribir createdAt en el futuro).
+ * - Expone un [FormState] validado por dominio (UseCase) y una [UiState] para la pantalla.
+ */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val repo: ProfileRepository,
-    private val validate: ValidateProfileInputUseCase // ⬅️ inyectamos el use case
+    private val validate: ValidateProfileInputUseCase
 ) : ViewModel() {
 
-    /** Estado del formulario + UI. */
+    /** Estado del formulario + errores de validación. */
     data class FormState(
         val givenName: String = "",
         val familyName: String = "",
@@ -37,6 +45,7 @@ class ProfileViewModel @Inject constructor(
         val canSave: Boolean = true
     )
 
+    /** Estado de UI. */
     data class UiState(
         val loading: Boolean = false,
         val isGuest: Boolean = true,
@@ -57,6 +66,7 @@ class ProfileViewModel @Inject constructor(
         data class Error(val text: String) : Event
     }
 
+    /** Evita bucles de ensure si el doc aún no existe. */
     private var ensuredOnce = false
 
     init {
@@ -64,8 +74,8 @@ class ProfileViewModel @Inject constructor(
         if (u == null || u.isAnonymous) {
             _ui.value = UiState(loading = false, isGuest = true)
         } else {
+            // Fallback desde Auth mientras llega Firestore
             val fallback = UserProfile(uid = u.uid, email = u.email, givenName = u.displayName)
-            // Inicia form con fallback
             _ui.update {
                 it.copy(
                     loading = true,
@@ -83,20 +93,20 @@ class ProfileViewModel @Inject constructor(
                         _ui.update { st -> st.copy(loading = false) }
                     }
                     .collect { prof ->
-                        // Ensure si no existe doc
                         if (prof == null && !ensuredOnce) {
                             ensuredOnce = true
                             runCatching {
-                                repo.upsertProfile(
+                                repo.ensureProfile(
                                     uid = u.uid,
                                     email = u.email,
-                                    input = ProfileInput(
+                                    seed = ProfileInput(
                                         givenName = u.displayName?.trim().takeUnless { it.isNullOrEmpty() }
                                     )
                                 )
                             }
+                            // el snapshot actualizará después
                         }
-                        // Actualiza UI + form desde doc o fallback
+
                         val effective = prof ?: fallback
                         _ui.update {
                             it.copy(
@@ -108,7 +118,8 @@ class ProfileViewModel @Inject constructor(
                                     familyName = effective.familyName.orEmpty(),
                                     phone = effective.phone.orEmpty(),
                                     birthDateMillis = effective.birthDate?.time
-                                ).revalidated()
+                                ).revalidated(),
+                                saved = false
                             )
                         }
                     }
@@ -116,11 +127,13 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+
     /* ─────────── Intents de formulario ─────────── */
-    fun onGivenNameChange(v: String) = updateForm { copy(givenName = v) }
-    fun onFamilyNameChange(v: String) = updateForm { copy(familyName = v) }
-    fun onPhoneChange(v: String)     = updateForm { copy(phone = v) }
-    fun onBirthDateChange(millis: Long?) = updateForm { copy(birthDateMillis = millis) }
+
+    fun onGivenNameChange(v: String)        = updateForm { copy(givenName = v) }
+    fun onFamilyNameChange(v: String)       = updateForm { copy(familyName = v) }
+    fun onPhoneChange(v: String)            = updateForm { copy(phone = v) }
+    fun onBirthDateChange(millis: Long?)    = updateForm { copy(birthDateMillis = millis) }
 
     /** Guarda cambios si el form es válido. */
     fun onSaveClicked() {
@@ -129,17 +142,19 @@ class ProfileViewModel @Inject constructor(
             _events.tryEmit(Event.Error("Debes iniciar sesión para editar tu perfil"))
             return
         }
+
         val current = _ui.value.form.revalidated()
         if (!current.canSave) {
             _events.tryEmit(Event.Error("Revisa los campos del formulario"))
-            _ui.update { it.copy(form = current) } // para mostrar errores
+            _ui.update { it.copy(form = current) } // reflejar errores en UI
             return
         }
+
         _ui.update { it.copy(loading = true, saved = false, form = current) }
 
         viewModelScope.launch {
             try {
-                // Valida/sanea con el use case para generar el ProfileInput correcto
+                // Validación/saneado de dominio
                 val result = validate(
                     current.givenName,
                     current.familyName,
@@ -152,6 +167,7 @@ class ProfileViewModel @Inject constructor(
                     phone = result.sanitized.phoneNormalized,
                     birthDateMillis = result.sanitized.birthDateMillis
                 )
+
                 val updated = repo.upsertProfile(u.uid, _ui.value.email, input)
                 _ui.update { it.copy(loading = false, profile = updated, saved = true) }
                 _events.tryEmit(Event.Info("Perfil guardado"))
@@ -162,7 +178,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    /** Restablece contraseña (Auth). */
+    /** Restablecimiento de contraseña. */
     fun sendPasswordReset() {
         val email = auth.currentUser?.email
         if (email.isNullOrBlank()) {
@@ -195,7 +211,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    /** Revalida el form con el UseCase y rellena errores/canSave. */
+    /** Ejecuta el UseCase y rellena errores/canSave. */
     private fun FormState.revalidated(): FormState {
         val r = validate(givenName, familyName, phone, birthDateMillis)
         return copy(
@@ -208,7 +224,7 @@ class ProfileViewModel @Inject constructor(
     }
 }
 
-/* await() local para Task */
+/* await() local para Task (mismo patrón que en AuthViewModel) */
 private suspend fun <T> Task<T>.await(): T =
     suspendCancellableCoroutine { cont ->
         addOnCompleteListener { task ->
