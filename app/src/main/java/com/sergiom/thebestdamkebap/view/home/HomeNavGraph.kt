@@ -1,7 +1,12 @@
 package com.sergiom.thebestdamkebap.view.home
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,10 +28,12 @@ fun HomeNavGraph(
         startDestination = HomeRoutes.HOME,
         modifier = modifier
     ) {
-        // Exploración
-        composable(HomeRoutes.HOME)     { /* TODO: contenido real */ }
-        composable(HomeRoutes.OFFERS)   { /* TODO: contenido real */ }
-        composable(HomeRoutes.PRODUCTS) { /* TODO: contenido real */ }
+        // Portada / Inicio
+        composable(HomeRoutes.HOME) { HomeStartScreen() }
+
+        // Exploración (sustituye por tus pantallas reales cuando las tengas)
+        composable(HomeRoutes.OFFERS)   { PlaceholderScreen("Ofertas") }
+        composable(HomeRoutes.PRODUCTS) { PlaceholderScreen("Productos") }
 
         // Cuenta
         composable(HomeRoutes.PROFILE)  { ProfileScreen() }
@@ -36,7 +43,7 @@ fun HomeNavGraph(
         // Direcciones (lista)
         composable(HomeRoutes.ADDRESSES) {
             AddressListScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }, // se mantiene por compatibilidad
                 onAddNew = { navController.navigate(HomeRoutes.AddressEdit.routeFor()) },
                 onEdit = { aid -> navController.navigate(HomeRoutes.AddressEdit.routeFor(aid)) }
             )
@@ -59,7 +66,7 @@ fun HomeNavGraph(
     }
 }
 
-/** Rutas internas de Home (una sola fuente de verdad). */
+/** Rutas internas de Home (única fuente de verdad). */
 object HomeRoutes {
     const val HOME = "home"
     const val OFFERS = "offers"
@@ -78,5 +85,29 @@ object HomeRoutes {
         fun routeFor(aid: String? = null): String =
             if (aid.isNullOrBlank()) "account/addresses/edit"
             else "account/addresses/edit?aid=$aid"
+    }
+}
+
+/* ===== Pantallas mínimas para que “Inicio” y las tabs no queden en blanco ===== */
+
+@Composable
+private fun HomeStartScreen() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Bienvenido 👋", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(8.dp))
+        Text("Esta es la portada de Home. Aquí irán banners, categorías, etc.")
+    }
+}
+
+@Composable
+private fun PlaceholderScreen(title: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(title, style = MaterialTheme.typography.headlineSmall)
     }
 }

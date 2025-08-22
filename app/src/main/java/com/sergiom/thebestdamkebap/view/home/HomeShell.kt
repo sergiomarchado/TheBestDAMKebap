@@ -22,7 +22,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -35,7 +38,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Contenedor visual de Home: Drawer + Scaffold + Nav interno (exploración).
- * El ítem "Mis direcciones" navega a la pantalla de lista del grafo interno.
+ * “Mis direcciones” navega a la lista integrada en el grafo interno.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,13 +59,18 @@ fun HomeShell(
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Usa el único HomeRoutes definido en tu HomeNavGraph
+    // Tabs del BottomBar
     val items = listOf(
-        HomeNavItem(HomeRoutes.HOME,     Icons.Outlined.Home,           "Inicio"),
-        HomeNavItem(HomeRoutes.OFFERS,   Icons.Outlined.LocalOffer,     "Ofertas"),
+        HomeNavItem(HomeRoutes.HOME, Icons.Outlined.Home, "Inicio"),
+        HomeNavItem(HomeRoutes.OFFERS, Icons.Outlined.LocalOffer, "Ofertas"),
         HomeNavItem(HomeRoutes.PRODUCTS, Icons.Outlined.RestaurantMenu, "Productos"),
     )
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val topRoutes = remember { setOf(HomeRoutes.HOME, HomeRoutes.OFFERS, HomeRoutes.PRODUCTS) }
+    val currentRoute = navBackStackEntry?.destination
+        ?.hierarchy
+        ?.firstOrNull { it.route in topRoutes }
+        ?.route
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -125,11 +133,19 @@ fun HomeShell(
                     items = items,
                     currentRoute = currentRoute,
                     onItemClick = { route ->
-                        if (route == currentRoute) return@HomeBottomBar
+                        if (route == currentRoute) {
+                            // Re-selección: volver a la raíz de ese tab
+                            navController.popBackStack(route, false)
+                            return@HomeBottomBar
+                        }
+                        // Cambio de tab: limpiar hasta el startDest y NO restaurar estado de tabs anteriores
                         navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = false
+                                saveState = false
+                            }
                             launchSingleTop = true
-                            restoreState = true
+                            restoreState = false
                         }
                     }
                 )
