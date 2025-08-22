@@ -10,6 +10,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.sergiom.thebestdamkebap.data.profile.ProfileInput        // ⬅️ nuevo
+import com.sergiom.thebestdamkebap.data.profile.ProfileRepository   // ⬅️ nuevo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,10 +60,16 @@ import kotlin.coroutines.resumeWithException
  *   (se hace signOut y se informa), mientras que el registro ofrece `requestEmailVerificationAndLogout()`.
  * - **await() de Task**: se implementa con `suspendCancellableCoroutine`. La cancelación de la coroutine
  *   **no cancela** el `Task` de Firebase (documentado más abajo).
+ *
+ * ### Novedad (perfil Firestore)
+ * - Tras el registro (o link desde invitado), se hace **upsert** en `/users/{uid}` con
+ *   `givenName` y `email` vía [ProfileRepository] para que la **fuente de verdad** del perfil
+ *   esté disponible desde el minuto 1 (Android/Angular).
  */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val profileRepo: ProfileRepository, // ⬅️ inyección del repo de perfil
 ) : ViewModel() {
 
     private companion object {
@@ -69,7 +77,6 @@ class AuthViewModel @Inject constructor(
     }
 
     /* ─────────── Estado observable UI (compatible) ─────────── */
-
 
     /** Usuario actual (null si no hay sesión; puede ser anónimo). */
     private val _user = MutableStateFlow(auth.currentUser)
@@ -118,6 +125,7 @@ class AuthViewModel @Inject constructor(
             // No emitimos mensaje de éxito aquí para no molestar.
         }
     }
+
     /**
      * Inicio de sesión con email/contraseña.
      *
@@ -139,7 +147,17 @@ class AuthViewModel @Inject constructor(
                 return@launchWithLoading
             }
             _user.value = user
-            // Sin mensaje extra para no duplicar snackbars
+            user?.let { u ->
+                try {
+                    profileRepo.upsertProfile(
+                        uid = u.uid,
+                        email = u.email,           // actualiza si cambió
+                        input = ProfileInput()
+                    )
+                } catch (t: Throwable) {
+                    Log.w("AuthViewModel", "No se pudo sincronizar email en /users", t)
+                }
+            }
         }
     }
 
@@ -150,6 +168,7 @@ class AuthViewModel @Inject constructor(
      * - Si el usuario actual es anónimo → **link** con las credenciales para conservar UID/datos.
      * - En caso contrario → crea cuenta y autentica con ella.
      * - Si `name` no es nulo/vacío → actualiza `displayName`.
+     * - **NUEVO**: Upsert del perfil en Firestore (uid/email/nombre) vía [profileRepo].
      */
     fun registerWithEmail(
         name: String?,
@@ -187,6 +206,24 @@ class AuthViewModel @Inject constructor(
                 userAfter.updateProfile(req).await()
             }
 
+            // ⬇️ Upsert de perfil en Firestore (idempotente; no bloquea el flujo si falla)
+            if (userAfter != null) {
+                try {
+                    val input = ProfileInput(
+                        givenName = name?.trim().takeUnless { it.isNullOrEmpty() },
+                        // Otros campos (apellidos/teléfono/fecha) se completan luego en "Perfil"
+                    )
+                    profileRepo.upsertProfile(
+                        uid = userAfter.uid,
+                        email = userAfter.email ?: email, // por seguridad, si Auth aún no refleja el email
+                        input = input
+                    )
+                } catch (t: Throwable) {
+                    // No rompemos el flujo de registro por esto; se puede reintentar más tarde.
+                    Log.w(TAG, "No se pudo crear/actualizar el perfil en Firestore.", t)
+                }
+            }
+
             _user.value = userAfter
             _events.tryEmit(AuthEvent.RegisterSuccess)
         }
@@ -216,9 +253,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Verificación por email
-// ─────────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Verificación por email
+    // ─────────────────────────────────────────────────────────────────────────────
     /**
      * Solicita envío de email de verificación y luego **desconecta** al usuario,
      * emitiendo un evento de navegación a login para cerrar el flujo de registro.
@@ -257,9 +294,11 @@ class AuthViewModel @Inject constructor(
     /* ─────────── Helpers públicos para UI (evitar re-mostrado) ─────────── */
 
     /** Llama desde la UI tras mostrar el snackbar de error. */
+    @Suppress("unused")
     fun consumeError() { _error.value = null }
 
     /** Llama desde la UI tras mostrar el snackbar de mensaje. */
+    @Suppress("unused")
     fun consumeMessage() { _message.value = null }
 
     /* ─────────── Infra/privados ─────────── */
@@ -273,6 +312,7 @@ class AuthViewModel @Inject constructor(
         _message.value = text
         _events.tryEmit(AuthEvent.Info(text))
     }
+
     /**
      * Ejecuta un bloque suspensivo mostrando `loading` y gestionando errores
      * con mapeo a mensajes de usuario + pista técnica en logs.

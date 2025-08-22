@@ -16,8 +16,10 @@ private val DarkColorScheme = darkColorScheme(
     secondary = BrandAmber,
     onSecondary = BrandBlack,
 
-    tertiary = BrandAmber,
+    tertiary = BrandAmberDark,
     onTertiary = BrandBlack,
+
+    primaryContainer = BrandWhite,
 
     background = BrandBlack,
     onBackground = TextOnDark,
@@ -38,11 +40,11 @@ private val LightColorScheme = lightColorScheme(
     tertiary = BrandAmber,
     onTertiary = BrandBlack,
 
-    background = BrandWhite,
-    onBackground = TextOnLight,
+    background = BrandBlack,
+    onBackground = TextOnDark,
 
-    surface = BrandWhite,
-    onSurface = TextOnLight,
+    surface = BrandBlack,
+    onSurface = TextOnDark,
 
     outline = OutlineBrand
 )
@@ -57,7 +59,7 @@ private val AppShapes = Shapes(
 @Composable
 fun TheBestDAMKebapTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // mantenemos marca estable en Android 12+
+    @Suppress("unused") dynamicColor: Boolean = false, // mantenemos marca estable en Android 12+
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

@@ -75,7 +75,10 @@ fun HomeShell(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet (
+                drawerContainerColor = MaterialTheme.colorScheme.tertiary,
+                drawerContentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 HomeDrawerContent(
                     userLabel = userLabel,
                     userEmail = userEmail,
@@ -142,7 +145,10 @@ fun HomeShell(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = onOpenCart) {
+                FloatingActionButton(
+                    onClick = onOpenCart,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
                     BadgedBox(badge = {
                         if (cartCount > 0) Badge { Text("$cartCount") }
                     }) {
