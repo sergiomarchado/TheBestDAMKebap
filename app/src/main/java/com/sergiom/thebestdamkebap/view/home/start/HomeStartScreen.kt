@@ -1,7 +1,18 @@
 package com.sergiom.thebestdamkebap.view.home.start
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +36,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -52,18 +64,23 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.LocalImageLoader
 import coil.compose.SubcomposeAsyncImage
-import coil.request.ImageRequest
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.animation.core.*
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Shape
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -94,7 +111,26 @@ fun HomeStartScreen(
     }
 
     val ctaEnabled = ui.canStart && canInteract
-    val ctaScale by animateFloatAsState(if (ctaEnabled) 1f else 0.98f, label = "ctaScale")
+    // El botón "late" solo si se puede pulsar y no está cargando
+    val attentionOn = ctaEnabled
+
+// Escala base (ligeramente más pequeña si está deshabilitado)
+    val baseScale by animateFloatAsState(if (ctaEnabled) 1f else 0.98f, label = "ctaBaseScale")
+
+// Pulso infinito (1.0 -> 1.04 -> 1.0)
+    val infinite = rememberInfiniteTransition(label = "ctaPulse")
+    val pulse by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+// Escala final: base * pulso (solo si toca)
+    val ctaScale = if (attentionOn) baseScale * pulse else baseScale
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) }
@@ -103,13 +139,25 @@ fun HomeStartScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(vertical = 12.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (ui.loading) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
             }
+            Text(
+                text = "¡Bienvenid@!",
+                modifier = Modifier.padding(start = 12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Start,
+            )
+            Text(
+                text = "Comienza a configurar tu pedido y échale un ojo a las novedades, por supuesto.",
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Start,
+            )
 
             Box(Modifier.padding(horizontal = 16.dp)) {
                 ModeToggle(
@@ -138,7 +186,13 @@ fun HomeStartScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth()
-                    .graphicsLayer { scaleX = ctaScale; scaleY = ctaScale },
+                    .graphicsLayer { scaleX = ctaScale; scaleY = ctaScale }
+                    .neonGlow(
+                        enabled = attentionOn,
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = MaterialTheme.shapes.large,   // mismo shape que el botón
+                        thickness = 2.dp
+                    ),
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -153,6 +207,20 @@ fun HomeStartScreen(
                     }
                 )
             }
+
+            Text(
+                text = "¡PROMOCIONES DEL MES!",
+                modifier = Modifier.padding(start = 12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Start,
+            )
+            Text(
+                text = "Estas son algunas de las promociones que podrás disfrutar ahora mismo:",
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Start,
+            )
 
             // 4) Promos full-bleed (llamar con 'promos = …')
             if (ui.promos.isNotEmpty()) {
@@ -179,13 +247,21 @@ private fun ModeToggle(
             selected = mode == HomeStartViewModel.Mode.DELIVERY,
             onClick = { onChange(HomeStartViewModel.Mode.DELIVERY) },
             label = { Text("A domicilio") },
-            enabled = enabled
+            enabled = enabled,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+            )
         )
         FilterChip(
             selected = mode == HomeStartViewModel.Mode.PICKUP,
             onClick = { onChange(HomeStartViewModel.Mode.PICKUP) },
             label = { Text("Para recoger") },
-            enabled = enabled
+            enabled = enabled,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+            )
         )
     }
 }
@@ -202,8 +278,15 @@ private fun AddressBlock(
     var expanded by remember { mutableStateOf(false) }
     val rotate by animateFloatAsState(if (expanded) 180f else 0f, label = "rotateExpand")
 
-    Surface(tonalElevation = 4.dp, shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        tonalElevation = 4.dp,
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Fila SIEMPRE visible
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -219,33 +302,44 @@ private fun AddressBlock(
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleSmall
                 )
                 IconButton(onClick = { expanded = !expanded }, enabled = enabled) {
                     Icon(
                         imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = null,
+                        contentDescription = if (expanded) "Contraer" else "Expandir",
                         modifier = Modifier.graphicsLayer { rotationZ = rotate }
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onAddNew, enabled = enabled) { Text("Añadir nueva") }
-                TextButton(onClick = onManage, enabled = enabled) { Text("Gestionar direcciones") }
-            }
-            AnimatedVisibility(visible = expanded && addresses.isNotEmpty()) {
+
+            // Contenido del desplegable: botones + lista (si hay)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    addresses.forEach { (id, label) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RadioButton(
-                                selected = id == selectedId,
-                                onClick = { if (enabled) onSelect(id) },
-                                enabled = enabled
-                            )
-                            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onAddNew, enabled = enabled) { Text("Añadir nueva") }
+                        TextButton(onClick = onManage, enabled = enabled) { Text("Gestionar direcciones") }
+                    }
+
+                    if (addresses.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            addresses.forEach { (id, label) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = id == selectedId,
+                                        onClick = { if (enabled) onSelect(id) },
+                                        enabled = enabled
+                                    )
+                                    Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
                         }
                     }
                 }
@@ -253,6 +347,7 @@ private fun AddressBlock(
         }
     }
 }
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -389,3 +484,65 @@ private object StorageUrlMemoryCache {
     fun invalidate(path: String) { map.remove(path) }
 }
 
+fun Modifier.neonGlow(
+    enabled: Boolean,
+    color: Color,
+    shape: Shape,
+    thickness: Dp = 2.dp
+): Modifier = composed {
+    if (!enabled) return@composed Modifier
+
+    val infinite = rememberInfiniteTransition(label = "neonGlow")
+    // Barrido del brillo por el borde
+    val sweep by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
+        label = "sweep"
+    )
+    // Respiración del halo
+    val haloAlpha by infinite.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label = "halo"
+    )
+
+    drawWithCache {
+        // Convertimos el shape a Path para dibujar el contorno exactamente igual que el botón
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val path = Path().apply {
+            when (outline) {
+                is Outline.Rounded   -> addRoundRect(outline.roundRect)
+                is Outline.Rectangle -> addRect(outline.rect)
+                is Outline.Generic   -> addPath(outline.path)
+            }
+        }
+        val strokePx = thickness.toPx()
+
+        onDrawWithContent {
+            drawContent()
+
+            // 1) Halo interior suave (varias pasadas con diferente grosor/alpha)
+            drawPath(path, color = color.copy(alpha = haloAlpha * 0.25f), style = Stroke(width = strokePx * 4))
+            drawPath(path, color = color.copy(alpha = haloAlpha * 0.15f), style = Stroke(width = strokePx * 7))
+
+            // 2) Borde base muy sutil
+            drawPath(path, color = color.copy(alpha = 0.25f), style = Stroke(width = strokePx))
+
+            // 3) Brillo que se desplaza por el borde (neón)
+            val w = size.width
+            val startX = -w + (w * 2f * sweep) // de izq -> der y vuelve a empezar
+            val brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    color.copy(alpha = haloAlpha),
+                    Color.Transparent
+                ),
+                start = Offset(startX, 0f),
+                end = Offset(startX + w / 2f, size.height)
+            )
+            drawPath(path, brush = brush, style = Stroke(width = strokePx * 1.6f))
+        }
+    }
+}

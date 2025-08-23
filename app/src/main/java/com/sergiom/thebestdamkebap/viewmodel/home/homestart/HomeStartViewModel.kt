@@ -177,13 +177,10 @@ class HomeStartViewModel @Inject constructor(
 
     /** Placeholder: cambia a Firestore/RemoteConfig cuando quieras hacerlo dinámico. */
     private fun defaultPromos(): List<Promo> = listOf(
-        Promo("p1", "2x1 en durum de pollo", "promos/promo2x1durumpollo.webp"),
-        Promo("p2", "Envío gratis > 20€",   "promos/promoenviogratis.webp"),
-        Promo("p3", "Menú mediodía",         "promos/promo3.jpg"),
+        Promo("p1", "Promo1", "promos/promo2x1durumpollo.webp"),
+        Promo("p2", "Promo2",   "promos/promoenviogratis.webp"),
+        Promo("p3", "Promo3",         "promos/promocombodoble.webp"),
     )
-
-
-
 
     private companion object {
         const val KEY_MODE = "mode"
