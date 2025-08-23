@@ -30,6 +30,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.sergiom.thebestdamkebap.navigation.HomeRoutes
 import com.sergiom.thebestdamkebap.view.home.components.HomeBottomBar
 import com.sergiom.thebestdamkebap.view.home.components.HomeDrawerContent
 import com.sergiom.thebestdamkebap.view.home.components.HomeNavItem
@@ -37,8 +38,26 @@ import com.sergiom.thebestdamkebap.view.home.components.HomeTopBar
 import kotlinx.coroutines.launch
 
 /**
- * Contenedor visual de Home: Drawer + Scaffold + Nav interno (exploración).
- * “Mis direcciones” navega a la lista integrada en el grafo interno.
+ * # HomeShell
+ *
+ * Contenedor visual principal de la sección **Home**.
+ *
+ * Incluye:
+ * - **Drawer** lateral con opciones de cuenta (perfil, direcciones, pedidos, ajustes).
+ * - **TopBar** con branding y acciones de sesión.
+ * - **BottomBar** con las tabs principales (Inicio, Ofertas, Productos).
+ * - **FAB** del carrito con badge (contador).
+ * - **SnackbarHost** para mensajes.
+ *
+ * Diseño:
+ * - Este componente **no conoce** lógica de negocio: recibe callbacks y datos ya preparados
+ *   (MVVM). El contenido dinámico se inyecta por `content(padding, navController)`.
+ *
+ * Navegación/tabs:
+ * - Cuando se re-selecciona el tab actual, se hace `popBackStack(route, false)` para volver
+ *   a la raíz de esa pestaña.
+ * - Al cambiar de tab, se navega con `popUpTo(findStartDestination()) + save/restoreState`
+ *   para conservar el estado de listas/filtros por pestaña.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,28 +72,39 @@ fun HomeShell(
     onOpenRegister: () -> Unit,
     onSignOut: () -> Unit,
     onOpenCart: () -> Unit,
-    content: @Composable (padding: PaddingValues, navController: NavHostController) -> Unit
+    content: @Composable (padding: PaddingValues, navController: NavHostController) -> Unit,
+    // Inyectable para previews/tests (permite pasar un navController de prueba)
+    navController: NavHostController = rememberNavController()
 ) {
-    val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Tabs del BottomBar
-    val items = listOf(
-        HomeNavItem(HomeRoutes.HOME, Icons.Outlined.Home, "Inicio"),
-        HomeNavItem(HomeRoutes.OFFERS, Icons.Outlined.LocalOffer, "Ofertas"),
-        HomeNavItem(HomeRoutes.PRODUCTS, Icons.Outlined.RestaurantMenu, "Productos"),
-    )
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    /* ───────────────── Tabs de la bottom bar ─────────────────
+     * Se memorizan para evitar recreaciones constantes en recomposición.
+     */
+    val items = remember {
+        listOf(
+            HomeNavItem(HomeRoutes.HOME, Icons.Outlined.Home, "Inicio"),
+            HomeNavItem(HomeRoutes.OFFERS, Icons.Outlined.LocalOffer, "Ofertas"),
+            HomeNavItem(HomeRoutes.PRODUCTS, Icons.Outlined.RestaurantMenu, "Productos"),
+        )
+    }
+    // Conjunto de rutas "top" (sirve para detectar qué tab está activa)
     val topRoutes = remember { setOf(HomeRoutes.HOME, HomeRoutes.OFFERS, HomeRoutes.PRODUCTS) }
+
+    // Ruta actual (solo entre las top) para resaltar tab y gestionar re-selección
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination
         ?.hierarchy
         ?.firstOrNull { it.route in topRoutes }
         ?.route
 
+    /* ───────────────── Drawer + Scaffold ───────────────── */
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
+            // Hoja del drawer con colores del tema (tertiary para diferenciarla)
             ModalDrawerSheet(
                 drawerContainerColor = MaterialTheme.colorScheme.tertiary,
                 drawerContentColor = MaterialTheme.colorScheme.onTertiary
@@ -83,6 +113,7 @@ fun HomeShell(
                     userLabel = userLabel,
                     userEmail = userEmail,
                     userIsGuest = userIsGuest,
+                    // Cada acción del menú cierra primero el drawer y luego navega/lanza callback
                     onOpenProfile = {
                         scope.launch { drawerState.close() }
                         navController.navigate(HomeRoutes.PROFILE) { launchSingleTop = true }
@@ -134,18 +165,20 @@ fun HomeShell(
                     currentRoute = currentRoute,
                     onItemClick = { route ->
                         if (route == currentRoute) {
-                            // Re-selección: volver a la raíz de ese tab
+                            // Re-selección del mismo tab: vuelve a su raíz
                             navController.popBackStack(route, false)
                             return@HomeBottomBar
                         }
-                        // Cambio de tab: limpiar hasta el startDest y NO restaurar estado de tabs anteriores
+                        // Cambio de tab:
+                        // - Limpia hasta el start destination del grafo actual
+                        // - Guarda/restaura estado para conservar scroll/filtros por tab
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 inclusive = false
-                                saveState = false
+                                saveState = true   // conserva el estado del tab al salir
                             }
                             launchSingleTop = true
-                            restoreState = false
+                            restoreState = true // restaura el estado si vuelves al tab
                         }
                     }
                 )
@@ -155,15 +188,21 @@ fun HomeShell(
                     onClick = onOpenCart,
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
+                    // Badge solo si hay artículos en carrito
                     BadgedBox(badge = {
                         if (cartCount > 0) Badge { Text("$cartCount") }
                     }) {
-                        Icon(Icons.Outlined.ShoppingCart, contentDescription = "Carrito")
+                        Icon(
+                            imageVector = Icons.Outlined.ShoppingCart,
+                            // A11y: ideal mover a strings.xml
+                            contentDescription = "Carrito ($cartCount)"
+                        )
                     }
                 }
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
         ) { padding ->
+            // Slot de contenido: aquí se monta el NavHost interno de Home
             content(padding, navController)
         }
     }

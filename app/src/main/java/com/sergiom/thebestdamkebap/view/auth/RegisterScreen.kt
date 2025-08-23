@@ -41,27 +41,26 @@ import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * Pantalla de **registro** con email/contraseña.
+ * Pantalla de registro con email y contraseña.
  *
- * Responsabilidades:
- * - Gestiona estado local del formulario (nombre opcional, email, password, confirmación).
- * - Valida entrada mínima en cliente (formato email, longitud password, confirmación).
- * - Observa `loading` del [AuthViewModel] y responde a **eventos efímeros** ([AuthEvent])
- *   para mostrar snackbars y coordinar navegación post-registro.
- * - Adapta layout a pantallas anchas usando [BoxWithConstraints] (2 columnas ≥ 600dp).
+ * Qué hace:
+ * - Muestra el formulario (nombre opcional, email, contraseña y confirmación).
+ * - Valida lo básico en el momento (formato del email, longitud y coincidencia de contraseñas).
+ * - Escucha el estado del [AuthViewModel] y reacciona a sus eventos (snackbars y vuelta a login).
+ * - Adapta el diseño a pantallas anchas (dos columnas a partir de 600dp).
  *
- * Flujo:
- * 1) Usuario envía → se marca `awaitingRegister` para prevenir reintentos rápidos.
- * 2) VM emite `RegisterSuccess` → se llama a `requestEmailVerificationAndLogout()`.
- * 3) VM emite `NavigateToLogin` → se limpia `awaitingRegister` y se llama a [onBackToLogin].
+ * Flujo de uso:
+ * 1) El usuario envía el formulario.
+ * 2) Si todos va bien, el ViewModel avisa con `RegisterSuccess`.
+ * 3) Se envía el email de verificación y se vuelve a la pantalla de login.
  *
- * UX/Accesibilidad:
- * - `imePadding()` en el contenedor raíz para evitar que el teclado tape campos/botones.
- * - En móviles, se añade `verticalScroll` para alcanzar todo el contenido.
+ * Detalles de UX:
+ * - `imePadding()` para que el teclado no tape el contenido.
+ * - Contenido desplazable para llegar a todos los campos en móviles.
  *
- * @param onBackToLogin Acción para volver a Login (el grafo ya gestiona el back stack).
- * @param logoRes Recurso opcional para branding en cabecera.
- * @param viewModel VM inyectado con Hilt que expone `loading` y `events`.
+ * @param onBackToLogin Acción para volver a la pantalla de inicio de sesión.
+ * @param logoRes Recurso de imagen opcional para la cabecera.
+ * @param viewModel ViewModel inyectado con Hilt.
  */
 @Composable
 fun RegisterScreen(
@@ -72,10 +71,10 @@ fun RegisterScreen(
     val colors = MaterialTheme.colorScheme
     val focus = LocalFocusManager.current
 
-    // VM: sólo necesitamos el estado de carga; los eventos se manejan abajo.
+    // Solo necesitamos el "loading" y los eventos del VM
     val loading by viewModel.loading.collectAsStateWithLifecycle()
 
-    // Estado del formulario (saveable → sobrevive a rotaciones/proceso si es posible).
+    // Estado del formulario (se conserva en rotaciones y, si puede, al reabrir la app)
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }

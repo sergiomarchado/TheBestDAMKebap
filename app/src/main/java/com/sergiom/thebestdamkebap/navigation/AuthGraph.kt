@@ -9,97 +9,88 @@ import androidx.navigation.navArgument
 import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.view.auth.LoginScreen
 import com.sergiom.thebestdamkebap.view.auth.RegisterScreen
-import androidx.compose.runtime.LaunchedEffect // ⬅️ nuevo import
+import androidx.compose.runtime.LaunchedEffect
 
 /**
- * authGraph
- *
- * Subgrafo de navegación para el flujo de autenticación.
+ * Subgrafo de autenticación.
  *
  * Estructura:
- * - `Graph.AUTH` como ruta del subgrafo.
- * - Destino inicial: [AuthDestinations.LOGIN].
- * - Rutas incluidas: ENTRY (opcional), LOGIN y REGISTER.
+ * - Ruta del grafo: [Graph.AUTH]
+ * - Inicio: [AuthDestinations.LOGIN]
+ * - Soporta entrada parametrizada vía [AuthRoutes] para abrir en login o register.
  *
- * Novedad:
- * - `ENTRY` permite entrar al grafo indicando un parámetro `start=login|register`.
- *   Útil para abrir Auth directamente en Register **sin** saltarte el grafo.
- *
- * Comportamiento clave:
- * - Al autenticarse, se navega a `Graph.HOME` haciendo `popUpTo(Standalone.SPLASH)` con
- *   `inclusive = true` para **vaciar** el back stack hasta Splash (incluyéndolo), evitando
- *   que el usuario pueda volver a Splash/Login con el botón atrás.
- * - `launchSingleTop = true` evita instancias duplicadas del destino raíz si ya estuviera al tope.
- *
- * Colaboradores:
- * - [LoginScreen] y [RegisterScreen] que exponen callbacks de navegación.
+ * Comportamiento:
+ * - Al autenticarse se navega a [Graph.HOME] limpiando el back stack hasta [Standalone.SPLASH]
+ *   (inclusive) para que no se pueda volver a Splash/Auth.
+ * - La ruta `AuthRoutes.ENTRY` redirige (mediante `LaunchedEffect`) a LOGIN/REGISTER
+ *   según el parámetro `start`.
  *
  * Requisitos:
- * - Las constantes de rutas (`Graph`, `AuthDestinations`, `Standalone`) deben ser únicas y estables.
- * - `Graph.HOME` debe existir y representar el grafo/pantalla raíz post-login.
- *
- * Uso recomendado:
- * - Entrar a Auth “normal”: `navController.navigate(Graph.AUTH)`.
- * - Entrar a Auth empezando en Register: `navController.navigate(AuthEntry.entryFor("register"))`.
- *
- * @param navController Controlador de navegación compartido a nivel de app.
+ * - Rutas únicas y estables en [Graph], [Standalone], [AuthDestinations].
+ * - [Graph.HOME] existe como grafo/pantalla raíz post-login.
  */
 fun NavGraphBuilder.authGraph(
     navController: NavHostController
 ) {
     navigation(
+        // Subgrafo con su ruta raíz y su destino inicial
         startDestination = AuthDestinations.LOGIN,
         route = Graph.AUTH
     ) {
-        // --- ENTRY opcional: redirige a LOGIN/REGISTER según query param `start` ---
+        // --- ENTRY opcional: decide a dónde entrar (login/register) según query param `start` ---
+        // Ruta patrón registrada: AuthRoutes.ENTRY = "auth/entry?start={start}"
         composable(
-            route = AuthEntry.ROUTE, // "auth/entry?start={start}"
+            route = AuthRoutes.ENTRY,
             arguments = listOf(
-                navArgument(AuthEntry.ARG_START) {
+                navArgument(AuthRoutes.ARG_START) {
                     type = NavType.StringType
-                    defaultValue = AuthEntry.START_LOGIN // "login"
+                    defaultValue = AuthRoutes.START_LOGIN // "login"
                 }
             )
         ) { backStackEntry ->
-            // Leemos el parámetro `start` y decidimos el destino objetivo.
-            val start = backStackEntry.arguments?.getString(AuthEntry.ARG_START)
-                ?: AuthEntry.START_LOGIN
+            // Leemos el parámetro `start` y, a partir de él, elegimos destino dentro del subgrafo
+            val start = backStackEntry.arguments?.getString(AuthRoutes.ARG_START)
+                ?: AuthRoutes.START_LOGIN
+
             val target = when (start) {
-                AuthEntry.START_REGISTER -> AuthDestinations.REGISTER
+                AuthRoutes.START_REGISTER -> AuthDestinations.REGISTER
                 else -> AuthDestinations.LOGIN
             }
-            // ✅ Navegación como side-effect para evitar ejecutar navigate() durante composición.
+
+            // Navegación como efecto secundario (no durante la composición)
             LaunchedEffect(target) {
                 navController.navigate(target) {
-                    popUpTo(AuthEntry.ROUTE) { inclusive = true } // elimina ENTRY del back stack
-                    launchSingleTop = true
+                    // Eliminamos ENTRY del back stack para que no se pueda volver a ella
+                    popUpTo(AuthRoutes.ENTRY) { inclusive = true }
+                    launchSingleTop = true // evita duplicados si ya estamos en `target`
                 }
             }
         }
 
+        // ========== LOGIN ==========
         composable(AuthDestinations.LOGIN) {
             LoginScreen(
-                // Recurso estático para la cabecera del login.
+                // Recurso de imagen (logo) para la cabecera
                 logoRes = R.drawable.ic_logo,
-                // Usuario autenticado correctamente → navegar a HOME.
-                // Se limpia el back stack hasta SPLASH (inclusive) para no volver a Auth.
+                // Usuario autenticado → ir a HOME y limpiar Splash del historial
                 onAuthenticated = {
                     navController.navigate(Graph.HOME) {
                         popUpTo(Standalone.SPLASH) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
+                // Ir a registro dentro del mismo subgrafo
                 onGoToRegister = {
-                    // Ir al formulario de registro dentro del mismo subgrafo.
                     navController.navigate(AuthDestinations.REGISTER)
                 }
             )
         }
 
+        // ========== REGISTER ==========
         composable(AuthDestinations.REGISTER) {
             RegisterScreen(
                 logoRes = R.drawable.ic_logo,
-                // ✅ Volver a LOGIN de forma robusta (funciona vengas de donde vengas).
+                // Volver a LOGIN: si existe en back stack, hacemos pop; si no, navegamos.
                 onBackToLogin = {
                     val popped = navController.popBackStack(
                         AuthDestinations.LOGIN,
@@ -112,25 +103,4 @@ fun NavGraphBuilder.authGraph(
             )
         }
     }
-}
-
-/**
- * Constantes/utilidades internas para la entrada parametrizable al grafo de Auth.
- *
- * Rutas:
- * - [ROUTE] → "auth/entry?start={start}" (query param opcional con default "login")
- *
- * Helpers:
- * - [entryFor] construye la ruta concreta para navegar: "auth/entry?start=register"
- */
-private object AuthEntry {
-    const val ARG_START = "start"
-    const val START_LOGIN = "login"
-    const val START_REGISTER = "register"
-
-    // Ruta patrón registrada en el NavGraph (con argumento opcional).
-    const val ROUTE = "auth/entry?start={$ARG_START}"
-
-    // Builder para la ruta concreta con query param.
-    fun entryFor(start: String): String = "auth/entry?start=$start"
 }

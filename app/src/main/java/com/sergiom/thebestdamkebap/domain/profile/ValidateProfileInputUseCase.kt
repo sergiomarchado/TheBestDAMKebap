@@ -1,18 +1,27 @@
-// domain/profile/ValidateProfileInputUseCase.kt
 package com.sergiom.thebestdamkebap.domain.profile
 
 import java.util.Calendar
 
 /**
- * Valida y sanea los campos de perfil.
+ * ValidateProfileInputUseCase
+ *
+ * Valida y **sanea** los campos del perfil antes de guardarlos.
+ *
  * Reglas actuales:
- * - Nombre: máx 50.
- * - Apellidos: máx 60.
- * - Teléfono (ES): opcional; si se informa, exactamente 9 dígitos tras normalizar.
- * - Fecha de nacimiento: no futura; edad mínima 13 años.
+ * - Nombre: máximo 50 caracteres.
+ * - Apellidos: máximo 60 caracteres.
+ * - Teléfono (ES): opcional; si se informa, deben quedar **exactamente 9 dígitos** tras normalizar.
+ *   (Se admite entrada con prefijo país `+34` o `34`: se elimina antes de validar.)
+ * - Fecha de nacimiento: no futura y edad mínima de 13 años.
+ *
+ * Sugerencia de uso:
+ * - Llamar a `invoke(...)` con los valores del formulario.
+ * - Si `result.valid` es `true`, usar `result.sanitized` para persistir.
+ * - Si hay errores, mostrar `result.errors` en los campos correspondientes.
  */
 class ValidateProfileInputUseCase {
 
+    /** Errores por campo (null = sin error). */
     data class Errors(
         val givenName: String? = null,
         val familyName: String? = null,
@@ -23,13 +32,15 @@ class ValidateProfileInputUseCase {
             givenName != null || familyName != null || phone != null || birthDate != null
     }
 
+    /** Valores saneados para persistencia. */
     data class Sanitized(
-        val givenName: String?,      // null si vacío/solo espacios
-        val familyName: String?,     // idem
-        val phoneNormalized: String?,// solo dígitos; null si vacío
-        val birthDateMillis: Long?   // null si se borra o no se estableció
+        val givenName: String?,       // null si vacío/solo espacios
+        val familyName: String?,      // idem
+        val phoneNormalized: String?, // solo 9 dígitos (ES) o null si vacío
+        val birthDateMillis: Long?    // null si se borra o no se estableció
     )
 
+    /** Resultado completo: errores + valores saneados. */
     data class Result(
         val errors: Errors,
         val sanitized: Sanitized
@@ -37,15 +48,31 @@ class ValidateProfileInputUseCase {
         val valid get() = !errors.hasAny
     }
 
+    /**
+     * Ejecuta la validación+saneado.
+     *
+     * @param givenName Nombre (puede venir con espacios).
+     * @param familyName Apellidos (puede venir con espacios).
+     * @param phoneRaw Teléfono tal como lo teclea el usuario (se permiten espacios, guiones, `+34`...).
+     * @param birthDateMillis Fecha de nacimiento (millis desde epoch) o null.
+     */
     operator fun invoke(
         givenName: String?,
         familyName: String?,
         phoneRaw: String?,
         birthDateMillis: Long?
     ): Result {
+        // 1) Trims básicos
         val name = givenName?.trim().orEmpty()
         val fam  = familyName?.trim().orEmpty()
-        val phoneDigits = phoneRaw.orEmpty().filter { it.isDigit() }
+
+        // 2) Normalización de teléfono:
+        //    - Quitamos todo excepto dígitos.
+        //    - Si empieza por "34" y tiene 11 dígitos (ej. "+34 612..." → "34612..."), quitamos el prefijo país.
+        val digitsOnly = phoneRaw.orEmpty().filter { it.isDigit() }
+        val phoneNormalized =
+            if (digitsOnly.length == 11 && digitsOnly.startsWith("34")) digitsOnly.drop(2) else digitsOnly
+
         val now = System.currentTimeMillis()
 
         var eName: String? = null
@@ -53,13 +80,16 @@ class ValidateProfileInputUseCase {
         var ePhone: String? = null
         var eBirth: String? = null
 
+        // 3) Reglas de longitud de texto
         if (name.length > 50) eName = "Máximo 50 caracteres"
         if (fam.length  > 60) eFam  = "Máximo 60 caracteres"
 
-        if (phoneDigits.isNotEmpty() && phoneDigits.length != 9) {
+        // 4) Teléfono ES: si se informa, deben ser 9 dígitos
+        if (phoneNormalized.isNotEmpty() && phoneNormalized.length != 9) {
             ePhone = "Debe tener 9 dígitos (España)"
         }
 
+        // 5) Fecha: no futura y ≥ 13 años
         if (birthDateMillis != null) {
             if (birthDateMillis > now) {
                 eBirth = "La fecha no puede ser futura"
@@ -68,10 +98,11 @@ class ValidateProfileInputUseCase {
             }
         }
 
+        // 6) Saneado final (strings vacíos → null)
         val sanitized = Sanitized(
             givenName = name.ifBlank { null },
             familyName = fam.ifBlank { null },
-            phoneNormalized = phoneDigits.ifBlank { null },
+            phoneNormalized = phoneNormalized.ifBlank { null },
             birthDateMillis = birthDateMillis
         )
 
@@ -86,6 +117,7 @@ class ValidateProfileInputUseCase {
         )
     }
 
+    /** Comprueba si `birthMillis` corresponde a al menos `years` años de edad. */
     @Suppress("SameParameterValue")
     private fun isAtLeastYearsOld(birthMillis: Long, years: Int): Boolean {
         val birth = Calendar.getInstance().apply { timeInMillis = birthMillis }

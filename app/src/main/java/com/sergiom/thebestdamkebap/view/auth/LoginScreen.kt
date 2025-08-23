@@ -32,34 +32,31 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * Pantalla de **inicio de sesión**.
+ * Pantalla de inicio de sesión.
  *
- * Responsabilidades:
- * - Gestiona el formulario local (email/contraseña, mostrar/ocultar password, recordar email).
- * - Observa estado del [AuthViewModel] (usuario/logging) y **navega** cuando hay sesión.
- * - Consume eventos efímeros ([AuthEvent]) para mostrar **snackbars 1-vez**.
- * - Persiste la preferencia y valor del email mediante [UserPrefs] (DataStore).
+ * Qué hace:
+ * - Muestra el formulario de acceso (email y contraseña) y permite alternar la visibilidad de la contraseña.
+ * - Escucha el estado del [AuthViewModel]; cuando hay usuario, avisa con [onAuthenticated].
+ * - Presenta avisos de una sola vez (snackbars) según los [AuthEvent] del ViewModel.
+ * - Ofrece “recordar email” con [UserPrefs] para una experiencia más cómoda.
  *
- * Decisiones de UI/UX:
- * - `Scaffold` con `SnackbarHost` para feedback no intrusivo.
- * - `imePadding()` para evitar solapamiento con el teclado en edge-to-edge.
- * - `verticalScroll` + paddings para que el contenido sea alcanzable en pantallas pequeñas.
+ * Detalles de diseño:
+ * - Usa `Scaffold` con `SnackbarHost` para mostrar mensajes sin interrumpir.
+ * - Añade `imePadding()` para que el teclado no tape los campos en pantallas pequeñas.
+ * - El contenido es desplazable para asegurar accesibilidad en dispositivos compactos.
  *
  * Accesibilidad:
- * - Título marcado con `semantics { heading() }` para lectores de pantalla.
+ * - El título principal se marca como encabezado para lectores de pantalla.
  *
  * Navegación:
- * - Al detectar `user != null` se llama a [onAuthenticated]; el back stack se limpia aguas arriba
- *   (ver Splash/NavGraph). Aquí solo se dispara el callback.
+ * - Esta pantalla no navega por sí misma. Llama a [onAuthenticated] y la navegación
+ *   se gestiona en el grafo superior (por ejemplo, limpiando el back stack en Splash).
  *
- * Notas:
- * - Se prioriza `events` frente a `error/message` del VM para evitar re-mostrados.
- * - Los textos visibles deberían estar en `strings.xml` para i18n (ver `Text(...)`).
- *
- * @param onAuthenticated Callback cuando hay usuario autenticado (incluye anónimo/verificado).
- * @param onGoToRegister Navegar a registro.
- * @param logoRes Recurso opcional de logo para la cabecera.
- * @param viewModel Inyectado con Hilt; expone estado/acciones de Auth.
+ * Parámetros:
+ * @param onAuthenticated Acción cuando ya hay sesión (invitado o usuario verificado).
+ * @param onGoToRegister Abre el registro.
+ * @param logoRes Recurso de imagen opcional para la cabecera.
+ * @param viewModel ViewModel inyectado con Hilt.
  */
 @Composable
 fun LoginScreen(
@@ -72,11 +69,11 @@ fun LoginScreen(
     val shapes = MaterialTheme.shapes
     val focus = LocalFocusManager.current
 
-    // VM state (lifecycle-aware).
+    /// Estado del VM (sensibles al ciclo de vida)
     val user    by viewModel.user.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
 
-    // Estado del formulario (saveable para restaurar en rotación/proceso).
+    // Estado del formulario (se conserva en rotación y en proceso)
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -89,7 +86,7 @@ fun LoginScreen(
     val canSubmit = email.isNotBlank() && password.isNotBlank() && !loading
 
     // Si ya hay usuario (por ejemplo, tras login/registro), navega fuera de login.
-    LaunchedEffect(user?.uid) { if (user != null) onAuthenticated() }
+    LaunchedEffect(user?.id) { if (user != null) onAuthenticated() }
 
     // Colecta de eventos efímeros del VM → snackbars one-shot (sin reemitir tras recomposición).
     LaunchedEffect(Unit) {

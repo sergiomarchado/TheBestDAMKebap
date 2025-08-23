@@ -1,23 +1,21 @@
 package com.sergiom.thebestdamkebap.viewmodel.home
 /**
- * Eventos efímeros que el ViewModel de **Home** emite hacia la UI.
+ * Eventos de **una sola vez** que el [HomeViewModel] comunica a la UI.
  *
- * Propósito:
- * - Comunicar sucesos **one-shot** (snackbars, navegación) que **no** forman parte del
- *   estado persistente de la pantalla (ese va en [UiState]).
+ * Diferencia con el estado ([UiState]):
+ * - El estado representa "cómo está la pantalla ahora".
+ * - Los eventos representan sucesos puntuales: mostrar un mensaje o lanzar una navegación.
+ *   No deben guardarse en el estado porque solo tienen que ocurrir **una vez**.
  *
- * Uso recomendado:
- * - En el ViewModel, expón `SharedFlow<HomeEvent>` y emite con `tryEmit()`/`emit`.
- * - En la UI (Compose), colecciona dentro de `LaunchedEffect(Unit)` usando `collectLatest`
- *   para mostrar snackbars y lanzar navegación sin re-emitir en recomposición.
+ * Cómo se usan:
+ * - El ViewModel emite estos eventos en un `SharedFlow<HomeEvent>`.
+ * - La UI (Compose) los recibe dentro de `LaunchedEffect(Unit)` usando `collectLatest`.
+ *   Así se asegura de ejecutarlos sin re-dispararlos en cada recomposición.
  *
- * Internacionalización:
- * - Los textos `text` deberían resolverse desde `strings.xml` en la capa que emite/consume.
- *
- * Extensiones futuras (ejemplos):
- * - `NavigateToProduct(val id: String)`
- * - `ShowAddToCartConfirmation(val productName: String)`
- * - `OpenExternalUrl(val url: String)`
+ * Notas:
+ * - Los textos (`text`) deberían obtenerse de `strings.xml` para soportar varios idiomas.
+ * - Se pueden añadir más tipos de evento según vaya creciendo la pantalla
+ *   (ej. navegación a producto, mostrar confirmaciones, abrir enlaces externos).
  */
 sealed interface HomeEvent {
     data class Error(val text: String) : HomeEvent

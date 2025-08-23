@@ -15,8 +15,20 @@ import com.sergiom.thebestdamkebap.viewmodel.home.HomeViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * Coordinador de Home: conecta VMs (Auth/Home), maneja efectos efímeros y
- * delega toda la UI de shell en [HomeShell]. Mantiene el diálogo de login aparte.
+ * Pantalla **Home** (coordinador).
+ *
+ * Qué hace:
+ * - Conecta los estados de [HomeViewModel] y [AuthViewModel].
+ * - Gestiona mensajes puntuales (snackbars) y navegación al carrito.
+ * - Muestra un diálogo de login cuando el usuario es invitado.
+ * - Delega el “esqueleto” visual en [HomeShell] y el grafo interno en [HomeNavGraph].
+ *
+ * Por qué así:
+ * - La UI no conoce detalles de datos; solo observa `ui`/`events` de los VMs.
+ * - Los efectos de una sola vez (snackbars, navegar) se recogen con `LaunchedEffect(Unit)`.
+ *
+ * Callbacks de navegación (proveídos por el grafo superior):
+ * - [onOpenLogin], [onOpenRegister], [onSignedOut], [onOpenCart].
  */
 @Composable
 fun HomeScreen(
@@ -33,13 +45,16 @@ fun HomeScreen(
     val user by authVm.user.collectAsStateWithLifecycle()
     val loading by authVm.loading.collectAsStateWithLifecycle()
 
+    // ¿Es invitado? (true cuando no hay usuario o es anónimo)
     val userIsGuest = user == null || user!!.isAnonymous
+
+    // Etiqueta visible del usuario (sin nullables forzados)
     val userLabel = remember(user) {
         when {
             userIsGuest -> "Invitado"
-            !user!!.displayName.isNullOrBlank() -> user!!.displayName!!
-            !user!!.email.isNullOrBlank()       -> user!!.email!!
-            else                                -> "Usuario"
+            !user?.name.isNullOrBlank()  -> user?.name!!
+            !user?.email.isNullOrBlank() -> user?.email!!
+            else -> "Usuario"
         }
     }
     val userEmail = remember(user) { user?.email.orEmpty() }
@@ -47,7 +62,7 @@ fun HomeScreen(
     // --- Snackbars + efectos efímeros ---
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Efectos de eventos (Auth)
+    // Eventos de Auth → snackbars informativos/errores
     LaunchedEffect(Unit) {
         authVm.events.collectLatest { ev ->
             when (ev) {
@@ -57,7 +72,7 @@ fun HomeScreen(
             }
         }
     }
-    // Efectos de eventos (Home)
+    // Eventos de Home → snackbars y navegación a carrito
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
@@ -68,11 +83,11 @@ fun HomeScreen(
         }
     }
 
-    // --- Diálogo de Login (para invitados) ---
+    // --- Diálogo de Login (solo para invitados) ---
     var showLoginDialog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(userIsGuest) { if (!userIsGuest) showLoginDialog = false }
 
-    // --- Shell + Nav interno ---
+    // --- Shell + Navegación interna de Home ---
     HomeShell(
         logoRes = logoRes,
         userLabel = userLabel,
@@ -90,7 +105,7 @@ fun HomeScreen(
             onSignedOut()
         },
         onOpenCart = onOpenCart,
-        // Slot de contenido: grafo interno de Home
+        // Contenido principal: grafo interno de Home
         content = { padding, navController ->
             HomeNavGraph(
                 navController = navController,
@@ -99,7 +114,7 @@ fun HomeScreen(
         }
     )
 
-    // Diálogo de login reusado
+    // Diálogo reutilizable para iniciar sesión desde Home
     LoginDialogIfNeeded(
         show = showLoginDialog,
         loading = loading,

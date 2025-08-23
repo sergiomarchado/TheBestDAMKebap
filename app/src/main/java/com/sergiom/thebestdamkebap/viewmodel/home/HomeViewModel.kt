@@ -7,24 +7,20 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 /**
- * HomeViewModel
+ * ViewModel de la pantalla Home.
  *
- * Responsabilidad:
- * - Orquestar el estado de la pantalla de Home ([UiState]) y emitir eventos efímeros
- *   ([HomeEvent]) hacia la UI (snackbars/navegación).
- * - Exponer operaciones de UI como `refresh()` y accesos rápidos de carrito (mientras no hay repos).
+ * Qué hace:
+ * - Mantiene el estado que la pantalla necesita (contador del carrito, cargando, etc.).
+ * - Lanza avisos puntuales para la UI (snackbars o navegación), sin repetirlos en recomposiciones.
+ * - Expone acciones sencillas como `refresh()` u “abrir carrito”.
  *
- * Colaboradores (futuros):
- * - Repositorios / casos de uso (Offers, Products, Cart) inyectados con Hilt.
- *   El VM **no** debería conocer detalles de red/DB; sólo invoca UseCases/Repos y mapea a UI.
+ * Cómo encaja en la app:
+ * - Más adelante recibirá repositorios o casos de uso por inyección (ofertas, productos, carrito).
+ *   El ViewModel no accede a red/BD directamente: solo coordina y traduce a un estado de UI.
  *
- * Estado:
- * - [_ui]: `StateFlow<UiState>` inmutable para la UI (colectado con collectAsStateWithLifecycle).
- * - [_events]: `SharedFlow<HomeEvent>` para one-shots (snackbars/nav). Buffer 1 para evitar pérdidas.
- *
- * Concurrencia:
- * - `refresh()` evita solaparse revisando `isLoading`. Si un repo expone Flows “siempre vivos”,
- *   convendrá observarlos y derivar `UiState` con `stateIn`, en vez de “refrescar” manualmente.
+ * Estado expuesto:
+ * - [ui]: flujo con el estado actual de la pantalla para que Compose lo observe.
+ * - [events]: flujo de eventos efímeros (no se guardan en el estado).
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(

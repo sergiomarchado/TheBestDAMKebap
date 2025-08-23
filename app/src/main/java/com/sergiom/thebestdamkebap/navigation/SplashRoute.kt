@@ -13,19 +13,14 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
+// Nota: El AuthViewModel ahora expone DomainUser?, pero desde aquí no necesitas importarlo.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Registro de la ruta Splash en el grafo raíz
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Registra la **ruta de Splash** en el grafo raíz.
- *
- * Responsabilidad:
- * - Añadir el destino [Standalone.SPLASH] y delegar la lógica en [SplashRoute].
- *
- * Alcance/DI:
- * - Este destino permite que `hiltViewModel()` resuelva un [AuthViewModel] scopeado al
- *   `NavBackStackEntry` de Splash. Al hacer `popUpTo(SPLASH){ inclusive = true }`, se limpia
- *   también ese scope.
- *
- * @param navController Controlador de navegación compartido por el NavHost.
+ * Añade el destino **Splash** al grafo raíz y delega la lógica de arranque en [SplashRoute].
  */
 fun NavGraphBuilder.splashRoute(
     navController: NavHostController
@@ -35,74 +30,65 @@ fun NavGraphBuilder.splashRoute(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pantalla de Splash / Bootstrap
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Pantalla/flujo de **Splash (bootstrap)**.
+ * Pantalla **Splash**: decide a qué grafo ir (AUTH o HOME) según el estado de usuario.
  *
- * Propósito:
- * - Observar el estado de usuario proporcionado por [AuthViewModel] y **redirigir** a
- *   [Graph.AUTH] o [Graph.HOME] según corresponda.
+ * Reglas:
+ * - `user == null`           → ir a AUTH (no hay sesión).
+ * - `isAnonymous == true`    → ir a HOME (invitado permitido).
+ * - `isEmailVerified == true`→ ir a HOME (cuenta verificada).
+ * - resto (no verificado)    → hacer `signOut()` y luego ir a AUTH.
  *
- * Reglas de decisión:
- * - `u == null` → no hay sesión → navegar a **AUTH**.
- * - `u.isAnonymous || u.isEmailVerified` → sesión válida (invitado o verificada) → **HOME**.
- * - En otro caso → forzar `signOut()` y volver a **AUTH**.
- *
- * Detalles de implementación:
- * - Se usa `collectAsStateWithLifecycle()` para observar el flujo `user` respetando el ciclo
- *   de vida de la composición (evita fugas/observaciones en segundo plano).
- * - `LaunchedEffect(userState.value)` relanza su bloque **solo** cuando cambia el valor
- *   observado. Es un patrón seguro para disparar navegación *side-effect* desde estado.
- * - La navegación limpia Splash del back stack con `popUpTo(SPLASH) { inclusive = true }`,
- *   de modo que el usuario no puede volver a Splash con el botón atrás.
- *
- * Notas/precauciones:
- * - Si el flujo `user` emite transiciones rápidas (p. ej., `null → anon → verified`),
- *   este efecto podría navegar varias veces en secuencia. `launchSingleTop = true` ayuda
- *   a evitar duplicados, pero si en el futuro ves “rebotes”, considera **de-bounce** o
- *   mapear a un "destino objetivo" (AUTH/HOME) y navegar sólo si cambia.
- * - `signOut()` dentro del efecto provocará nuevas emisiones del flujo; está bien, ya
- *   que inmediatamente se redirige y se despeja el back stack.
- *
- * UI:
- * - Muestra un `CircularProgressIndicator` centrado mientras se decide el destino.
- *
- * @param navController Controlador de navegación para emitir los cambios de destino.
- * @param viewModel ViewModel inyectado con Hilt scopeado al destino de Splash.
+ * Detalles:
+ * - Se observa `viewModel.user` con `collectAsStateWithLifecycle()` para respetar Lifecycle.
+ * - La navegación se hace en `LaunchedEffect` (side-effect) y limpiamos Splash del back stack.
  */
 @Composable
 private fun SplashRoute(
     navController: NavHostController,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    // 1) Obtenemos el usuario actual desde el VM (DomainUser?); la UI se recompondrá si cambia.
     val userState = viewModel.user.collectAsStateWithLifecycle()
     val u = userState.value
 
-    // Derivamos el destino objetivo a partir del estado de usuario.
+    // 2) Calculamos el destino objetivo a partir del usuario actual.
     val target: String = when {
         u == null -> Graph.AUTH
         u.isAnonymous || u.isEmailVerified -> Graph.HOME
-        else -> Graph.AUTH // usuario no verificado → irá a AUTH tras signOut()
+        else -> Graph.AUTH // usuario logueado pero NO verificado → le sacamos a AUTH
     }
 
-    // Si el usuario está no verificado, forzaremos logout antes de navegar.
+    // 3) ¿Debemos forzar logout? (caso: usuario real pero sin verificar)
     val shouldSignOut = u != null && !u.isAnonymous && !u.isEmailVerified
 
-    // Navegación **claveada por destino**, no por cada emisión de usuario.
-    LaunchedEffect(target) {
+    // 4) Disparamos navegación como efecto. Importante: claveamos por (target, shouldSignOut)
+    //    para cubrir secuencias como null→noVerificado (mismo target=AUTH pero cambia shouldSignOut).
+    LaunchedEffect(target, shouldSignOut) {
         if (shouldSignOut) {
-            // Mantiene la semántica actual: salir si no verificado.
+            // Cierra sesión para bloquear acceso de cuentas no verificadas.
             viewModel.signOut()
         }
-        // Evita navegación redundante al mismo destino.
-        if (navController.currentDestination?.route != target) {
+        // Evitamos navegar redundante al mismo destino; `currentDestination` puede ser null al inicio,
+        // por eso también usamos launchSingleTop al navegar.
+        val current = navController.currentDestination?.route
+        if (current != target) {
             navController.navigate(target) {
+                // Limpiamos Splash para que no se pueda volver con “atrás”
                 popUpTo(Standalone.SPLASH) { inclusive = true }
+                // Previene duplicados si ya estamos navegando al mismo sitio
                 launchSingleTop = true
+                // (Opcional) Si quieres restaurar estado cuando vuelvas a grafos con tabs/listas:
+                // restoreState = true
             }
         }
     }
 
+    // 5) UI simple de espera mientras decidimos el destino.
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }

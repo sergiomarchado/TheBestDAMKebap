@@ -1,23 +1,25 @@
 package com.sergiom.thebestdamkebap.viewmodel.home
 /**
- * Estado inmutable de la pantalla **Home**.
+ * Estado de la pantalla principal (**Home**).
  *
- * Contrato:
- * - Representa **estado persistente de UI** (no efímero). Los eventos one-shot (snackbars,
- *   navegación) van en [HomeEvent] y se emiten por `SharedFlow` desde el ViewModel.
- * - Es **inmutable** y se expone como `StateFlow<UiState>` para Compose.
+ * Diferencia con [HomeEvent]:
+ * - Aquí guardamos lo que **se mantiene en el tiempo** en la UI.
+ * - Los sucesos puntuales (mensajes, navegación) se manejan como eventos aparte.
  *
- * Campos:
- * @property isLoading Indica si hay una carga/refresh en curso. Útil para deshabilitar UI y
- *                     mostrar indicadores (p. ej., pull-to-refresh/progress en top bar).
- * @property cartCount Contador visible del carrito (temporal hasta conectar repo/UseCase).
+ * Qué representa:
+ * - [isLoading]: si la pantalla está cargando o refrescando contenido.
+ *   La UI puede mostrar un spinner o deshabilitar botones mientras sea true.
+ * - [cartCount]: número de productos en el carrito (de momento gestionado en memoria).
  *
- * Extensiones futuras (sugerencias):
- * - Datos de contenido: `offers: List<OfferUi>`, `categories: List<CategoryUi>`, etc.
- * - Estado de errores **no efímeros** (para mostrar placeholders): `errorMessageResId: Int?`
- *   o un `ContentState` sellado (Empty/Failure/Data).
- * - Filtros/paginación/ordenación: `query: String`, `selectedCategoryId: String?`, `page: Int`, …
- * - UI hints: `isRefreshing: Boolean` si además de `isLoading` distingues acciones del usuario.
+ * Cómo evoluciona:
+ * - El ViewModel expone este estado como `StateFlow<UiState>`.
+ * - La UI lo observa con `collectAsStateWithLifecycle()` y se recompone automáticamente
+ *   cuando cambian los valores.
+ *
+ * Crecerá en el futuro con:
+ * - Listas de ofertas, categorías, productos, etc.
+ * - Estados de error o vacíos (ej. no hay conexión).
+ * - Parámetros de búsqueda o filtros.
  */
 data class UiState(
     val isLoading: Boolean = false,

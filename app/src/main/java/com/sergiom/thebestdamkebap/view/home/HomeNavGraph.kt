@@ -12,12 +12,30 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.sergiom.thebestdamkebap.navigation.HomeRoutes   // ⬅️ única fuente de verdad de rutas
 import com.sergiom.thebestdamkebap.view.home.screens.AddressEditScreen
 import com.sergiom.thebestdamkebap.view.home.screens.AddressListScreen
 import com.sergiom.thebestdamkebap.view.home.screens.OrdersScreen
 import com.sergiom.thebestdamkebap.view.home.screens.ProfileScreen
 import com.sergiom.thebestdamkebap.view.home.screens.SettingsScreen
 
+/**
+ * Grafo de navegación interno de **Home**.
+ *
+ * Propósito:
+ * - Define todas las rutas y pantallas que forman parte del flujo de Home.
+ * - Se integra dentro de [HomeShell], y organiza navegación entre tabs (Inicio, Ofertas,
+ *   Productos) y secciones de cuenta (Perfil, Direcciones, Pedidos, Ajustes).
+ *
+ * Características:
+ * - `NavHost` con `startDestination = HomeRoutes.HOME`.
+ * - Cada ruta se declara **una sola vez** en `navigation/HomeRoutes.kt` para evitar duplicados.
+ * - Soporta navegación con argumentos opcionales (`aid` en edición de direcciones).
+ *
+ * Extensible:
+ * - Sustituir pantallas `PlaceholderScreen` por implementaciones reales.
+ * - Añadir subgrafos (ej. checkout) si crece la complejidad.
+ */
 @Composable
 fun HomeNavGraph(
     navController: NavHostController,
@@ -28,28 +46,28 @@ fun HomeNavGraph(
         startDestination = HomeRoutes.HOME,
         modifier = modifier
     ) {
-        // Portada / Inicio
+        // --- Portada / Inicio ---
         composable(HomeRoutes.HOME) { HomeStartScreen() }
 
-        // Exploración (sustituye por tus pantallas reales cuando las tengas)
+        // --- Exploración (Ofertas / Productos) ---
         composable(HomeRoutes.OFFERS)   { PlaceholderScreen("Ofertas") }
         composable(HomeRoutes.PRODUCTS) { PlaceholderScreen("Productos") }
 
-        // Cuenta
+        // --- Cuenta ---
         composable(HomeRoutes.PROFILE)  { ProfileScreen() }
         composable(HomeRoutes.SETTINGS) { SettingsScreen() }
         composable(HomeRoutes.ORDERS)   { OrdersScreen() }
 
-        // Direcciones (lista)
+        // --- Lista de direcciones ---
         composable(HomeRoutes.ADDRESSES) {
             AddressListScreen(
-                onBack = { navController.popBackStack() }, // se mantiene por compatibilidad
+                onBack = { navController.popBackStack() }, // compatibilidad
                 onAddNew = { navController.navigate(HomeRoutes.AddressEdit.routeFor()) },
                 onEdit = { aid -> navController.navigate(HomeRoutes.AddressEdit.routeFor(aid)) }
             )
         }
 
-        // Direcciones (editar / nueva)
+        // --- Editar / crear dirección ---
         composable(
             route = HomeRoutes.ADDRESS_EDIT,
             arguments = listOf(
@@ -61,34 +79,15 @@ fun HomeNavGraph(
             )
         ) { backStackEntry ->
             val aid = backStackEntry.arguments?.getString(HomeRoutes.AddressEdit.ARG_AID)
-            AddressEditScreen(aid = aid, onClose = { navController.popBackStack() })
+            AddressEditScreen(
+                aid = aid,
+                onClose = { navController.popBackStack() }
+            )
         }
     }
 }
 
-/** Rutas internas de Home (única fuente de verdad). */
-object HomeRoutes {
-    const val HOME = "home"
-    const val OFFERS = "offers"
-    const val PRODUCTS = "products"
-
-    // Cuenta
-    const val PROFILE = "account/profile"
-    const val SETTINGS = "account/settings"
-    const val ORDERS = "account/orders"
-
-    // Direcciones (integradas en el nav interno)
-    const val ADDRESSES = "account/addresses"
-    const val ADDRESS_EDIT = "account/addresses/edit?aid={aid}"
-    object AddressEdit {
-        const val ARG_AID = "aid"
-        fun routeFor(aid: String? = null): String =
-            if (aid.isNullOrBlank()) "account/addresses/edit"
-            else "account/addresses/edit?aid=$aid"
-    }
-}
-
-/* ===== Pantallas mínimas para que “Inicio” y las tabs no queden en blanco ===== */
+/* ═══════════ Pantallas mínimas para no dejar tabs en blanco ═══════════ */
 
 @Composable
 private fun HomeStartScreen() {

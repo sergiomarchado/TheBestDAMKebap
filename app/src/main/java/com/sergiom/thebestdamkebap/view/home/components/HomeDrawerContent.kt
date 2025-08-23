@@ -17,16 +17,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Drawer de **cuenta** en Home.
+ * Panel lateral (drawer) de **cuenta** dentro de Home.
  *
- * Secciones:
- * 1) Cabecera de usuario (icono + label + email si aplica).
- * 2) Acciones de cuenta:
- *    - Mi Perfil
- *    - Mis Direcciones (abre un sheet/diálogo)
- *    - Últimos pedidos
- *    - Configuración
- * 3) Bloque inferior: Iniciar sesión / Crear cuenta (invitado) o Cerrar sesión.
+ * Qué muestra:
+ * - Cabecera con el nombre del usuario y, si procede, su email.
+ * - Accesos rápidos a secciones de cuenta: perfil, direcciones, pedidos y ajustes.
+ * - Bloque inferior con acciones de sesión:
+ *    - Invitado → "Iniciar sesión" y "Crear cuenta".
+ *    - Usuario con sesión → "Cerrar sesión".
+ *
+ * Cuándo usarlo:
+ * - Se renderiza como contenido del `ModalNavigationDrawer` de Home.
+ * - No navega por sí mismo: expone callbacks que el shell resolverá (cerrar drawer,
+ *   navegar a rutas internas o lanzar el flujo de auth).
+ *
+ * Parámetros:
+ * @param userLabel     Etiqueta visible del usuario (p. ej., “Invitado”, nombre o email).
+ * @param userEmail     Email del usuario si está disponible (se oculta para invitados).
+ * @param userIsGuest   Indica si la sesión actual es de invitado.
+ * @param onOpenProfile Abre la pantalla de perfil.
+ * @param onManageAddresses Abre la gestión de direcciones (lista/sheet).
+ * @param onOpenOrders  Abre el historial de pedidos.
+ * @param onOpenSettings Abre ajustes de la cuenta.
+ * @param onLogin       Inicia el flujo de login.
+ * @param onRegister    Inicia el flujo de registro.
+ * @param onLogout      Cierra la sesión actual.
  */
 @Composable
 fun HomeDrawerContent(

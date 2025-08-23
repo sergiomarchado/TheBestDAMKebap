@@ -14,57 +14,47 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Módulo de inyección de dependencias para los servicios de Firebase.
+ * Proveedor central de servicios de Firebase para la app.
  *
- * Instalación/vida:
- * - Se instala en [SingletonComponent], por lo que cada @Provides aquí devuelve una
- *   **única instancia** (singleton) que vive durante todo el ciclo de vida del proceso.
+ * ¿Para qué sirve?
+ * - Ofrece una única instancia de cada servicio que podemos pedir por inyección.
+ * - Deja toda la configuración en un solo lugar, para que sea más fácil de mantener y probar.
  *
- * ¿Por qué inyectar en lugar de acceder estáticamente?
- * - Centraliza configuración (p. ej., `FirestoreSettings`) en un único punto.
- * - Hace el código **testeable** (en tests se pueden sustituir por dobles/fakes).
- * - Evita “new”/singletons manuales dispersos por la app.
+ * Alcance:
+ * - Se instala a nivel de aplicación. Cada servicio se crea una vez y se reutiliza.
  *
- * App Check:
- * - Este módulo **no** inicializa App Check; eso se hace en la clase `Application`.
- *   Si en la consola activas el “enforcement”, las llamadas de estas instancias
- *   ya viajarán con el token correspondiente.
+ * Nota sobre App Check:
+ * - La activación de App Check se realiza en la clase `Application`. Aquí solo
+ *   entregamos las instancias ya listas para usarse.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object FirebaseModule {
 
     /**
-     * Provee una instancia singleton de [FirebaseAuth].
+     * Autenticación de Firebase.
      *
-     * Razones:
-     * - [FirebaseAuth.getInstance] es seguro y barato, pero inyectarlo facilita testear
-     *   ViewModels/UseCases sin tocar APIs estáticas.
+     * Por qué inyectarlo:
+     * - Evita accesos estáticos repartidos por el código.
+     * - Facilita sustituirlo por dobles o fakes en pruebas.
      */
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 
     /**
-     * Provee una instancia singleton de [FirebaseFirestore] con ajustes de caché local.
+     * Base de datos Firestore con caché local ajustada por entorno.
      *
-     * Diseño:
-     * - La **persistencia offline** de Firestore en Android viene **activada por defecto**.
-     *   Aquí solo la hacemos explícita y fijamos el tamaño de la caché.
-     * - Elegimos un tamaño distinto según el tipo de build:
-     *     * Debug: 20 MB → ahorro de espacio y feedback rápido durante desarrollo.
-     *     * Release: 100 MB → más holgura para datos en producción.
-     *
-     * Por qué detectar “debug” así:
-     * - Evitamos depender de BuildConfig.DEBUG. Leemos el flag `FLAG_DEBUGGABLE`, que
-     *   funciona incluso si no generas BuildConfig.
+     * Comportamiento:
+     * - Firestore ya trae caché offline activada; aquí solo fijamos el tamaño.
+     * - En debug usamos un tamaño menor para ahorrar espacio; en release, más margen.
      */
     @Provides
     @Singleton
     fun provideFirebaseFirestore(@ApplicationContext context: Context): FirebaseFirestore{
         val db = FirebaseFirestore.getInstance()
 
-        // Detecta si la app es "debuggable" sin usar BuildConfig
+        // Detectamos si la app es depurable sin depender de BuildConfig
         val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         // Tamaño de caché local según entorno
@@ -89,12 +79,11 @@ object FirebaseModule {
     }
 
     /**
-     * Provee una instancia singleton de [FirebaseAnalytics].
+     * Analytics de Firebase.
      *
-     * Notas:
-     * - Se obtiene con ApplicationContext para evitar fugas.
-     * - Inyectarlo facilita testear (p. ej., sustituir por un stub que no envíe eventos).
-     * - Si no quieres telemetry en Debug, puedes condicionar el envío en la capa que lo usa.
+     * Detalles:
+     * - Se obtiene con el contexto de la aplicación.
+     * - Si no quieres enviar eventos en debug, decide el comportamiento en la capa que lo use.
      */
     @Provides
     @Singleton
