@@ -1,23 +1,24 @@
 package com.sergiom.thebestdamkebap.view.home
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.sergiom.thebestdamkebap.navigation.HomeRoutes   // ⬅️ única fuente de verdad de rutas
+import com.sergiom.thebestdamkebap.navigation.HomeRoutes
 import com.sergiom.thebestdamkebap.view.home.screens.AddressEditScreen
 import com.sergiom.thebestdamkebap.view.home.screens.AddressListScreen
 import com.sergiom.thebestdamkebap.view.home.screens.OrdersScreen
 import com.sergiom.thebestdamkebap.view.home.screens.ProfileScreen
 import com.sergiom.thebestdamkebap.view.home.screens.SettingsScreen
+import com.sergiom.thebestdamkebap.view.home.start.HomeStartScreen
 
 /**
  * Grafo de navegación interno de **Home**.
@@ -47,7 +48,20 @@ fun HomeNavGraph(
         modifier = modifier
     ) {
         // --- Portada / Inicio ---
-        composable(HomeRoutes.HOME) { HomeStartScreen() }
+        composable(HomeRoutes.HOME) {
+            HomeStartScreen(
+                onStartOrder = { mode, addressId ->
+                    // Por ahora, navegamos a PRODUCTS. Más adelante, podrás pasar params o usar un VM compartido.
+                    navController.navigate(HomeRoutes.PRODUCTS)
+                },
+                onAddAddress = {
+                    navController.navigate(HomeRoutes.AddressEdit.routeFor())
+                },
+                onManageAddresses = {
+                    navController.navigate(HomeRoutes.ADDRESSES)
+                }
+            )
+        }
 
         // --- Exploración (Ofertas / Productos) ---
         composable(HomeRoutes.OFFERS)   { PlaceholderScreen("Ofertas") }
@@ -89,20 +103,6 @@ fun HomeNavGraph(
 
 /* ═══════════ Pantallas mínimas para no dejar tabs en blanco ═══════════ */
 
-@Composable
-private fun HomeStartScreen() {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Bienvenido 👋", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(8.dp))
-        Text("Esta es la portada de Home. Aquí irán banners, categorías, etc.")
-    }
-}
 
 @Composable
 private fun PlaceholderScreen(title: String) {

@@ -53,7 +53,7 @@ hilt {
 }
 
 dependencies {
-    // CORE
+    // Compose / AndroidX
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -64,36 +64,38 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.foundation)
 
-    //DataStore
-    implementation(libs.androidx.datastore.preferences)
+    // Coil
+    implementation(libs.coil.compose)
+    // ❌ elimina: implementation(libs.coil.firebase)
 
-    // FIREBASE
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)     // ← aquí, con el BoM
     implementation(libs.firebase.analytics)
-    //AppCheck
     implementation(libs.firebase.appcheck)
-    // App Check providers
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
 
-    // HILT DI
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services) // ← para Task.await()
+
+    // Hilt / Room / DataStore / Tests (igual que ya tienes)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // ROOM
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.room.paging)
     ksp(libs.room.compiler)
 
-    // COROUTINES
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
