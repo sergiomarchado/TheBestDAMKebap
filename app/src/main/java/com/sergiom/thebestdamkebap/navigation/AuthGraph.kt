@@ -75,8 +75,9 @@ fun NavGraphBuilder.authGraph(
                 // Usuario autenticado → ir a HOME y limpiar Splash del historial
                 onAuthenticated = {
                     navController.navigate(Graph.HOME) {
-                        popUpTo(Standalone.SPLASH) { inclusive = true }
+                        popUpTo(Graph.AUTH) { inclusive = true }
                         launchSingleTop = true
+                        restoreState = true // opcional: si quieres restaurar estado de Home
                     }
                 },
                 // Ir a registro dentro del mismo subgrafo

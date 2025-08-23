@@ -31,8 +31,9 @@ fun NavGraphBuilder.homeGraph(
             // Helper local para evitar duplicar el mismo patrón de navegación a Auth.
             val navigateToAuth: (String) -> Unit = { target ->
                 navController.navigate(target) {
-                    popUpTo(Graph.HOME) { inclusive = true } // limpia todo Home del stack
+                    popUpTo(Graph.HOME) { inclusive = true } // limpia tod Home del stack
                     launchSingleTop = true                    // evita duplicados
+                    restoreState = true
                 }
             }
 
