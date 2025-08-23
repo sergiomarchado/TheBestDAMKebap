@@ -1,6 +1,7 @@
-// data/profile/ProfileRepository.kt
-package com.sergiom.thebestdamkebap.data.profile
+package com.sergiom.thebestdamkebap.domain.profile
 
+import com.sergiom.thebestdamkebap.data.profile.ProfileInput
+import com.sergiom.thebestdamkebap.data.profile.UserProfile
 import kotlinx.coroutines.flow.Flow
 
 /**

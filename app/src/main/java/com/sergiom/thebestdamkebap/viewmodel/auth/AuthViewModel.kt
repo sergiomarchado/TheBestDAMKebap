@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
 import com.sergiom.thebestdamkebap.data.profile.ProfileInput
-import com.sergiom.thebestdamkebap.data.profile.ProfileRepository
+import com.sergiom.thebestdamkebap.domain.profile.ProfileRepository
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser
 import dagger.hilt.android.lifecycle.HiltViewModel

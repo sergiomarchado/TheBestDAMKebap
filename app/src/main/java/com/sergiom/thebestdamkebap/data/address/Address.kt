@@ -1,12 +1,13 @@
 // data/address/Address.kt
 package com.sergiom.thebestdamkebap.data.address
 
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /** Dirección almacenada en `/users/{uid}/addresses/{id}`. */
 data class Address(
-    val id: String = "",              // <- no lo guarda Firestore, lo rellenamos con doc.id
+    @get:Exclude val id: String = "",
     val label: String? = null,        // "Casa", "Trabajo"…
     val recipientName: String? = null,
     val phone: String? = null,        // móvil de contacto

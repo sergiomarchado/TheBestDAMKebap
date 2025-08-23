@@ -1,7 +1,7 @@
 // di/AddressModule.kt
 package com.sergiom.thebestdamkebap.di
 
-import com.sergiom.thebestdamkebap.data.address.AddressRepository
+import com.sergiom.thebestdamkebap.domain.address.AddressRepository
 import com.sergiom.thebestdamkebap.data.address.FirebaseAddressRepository
 import dagger.Binds
 import dagger.Module

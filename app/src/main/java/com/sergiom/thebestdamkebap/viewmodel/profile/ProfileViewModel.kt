@@ -4,7 +4,7 @@ package com.sergiom.thebestdamkebap.viewmodel.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sergiom.thebestdamkebap.data.profile.ProfileInput
-import com.sergiom.thebestdamkebap.data.profile.ProfileRepository
+import com.sergiom.thebestdamkebap.domain.profile.ProfileRepository
 import com.sergiom.thebestdamkebap.data.profile.UserProfile
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser

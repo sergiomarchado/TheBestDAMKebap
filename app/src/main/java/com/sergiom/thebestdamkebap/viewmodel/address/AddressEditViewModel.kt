@@ -3,13 +3,14 @@ package com.sergiom.thebestdamkebap.viewmodel.address
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sergiom.thebestdamkebap.data.address.Address
-import com.sergiom.thebestdamkebap.data.address.AddressInput
-import com.sergiom.thebestdamkebap.data.address.AddressRepository
+import com.sergiom.thebestdamkebap.domain.address.Address as DomainAddress
+import com.sergiom.thebestdamkebap.domain.address.AddressInput as DomainAddressInput
+import com.sergiom.thebestdamkebap.domain.address.AddressRepository
 import com.sergiom.thebestdamkebap.domain.address.ValidateAddressInputUseCase
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,19 +19,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
- * ViewModel de **Alta/Edición de Dirección**.
- *
- * Cambios clave (Clean/MVVM):
- * - Inyecta [AuthRepository] (dominio) en lugar de depender de FirebaseAuth.
- * - Lee el usuario actual desde `authRepo.currentUser` (StateFlow).
- * - Se mantiene el mismo flujo: bootstrap una sola vez, validación dominio, upsert y (opcional) setDefault.
- *
- * Notas:
- * - Este VM no reacciona si cambia el usuario *después* de `bootstrap` (mismo comportamiento que tenías).
- *   Si en el futuro quieres soportarlo, se podría observar `authRepo.currentUser` y reinicializar.
+ * ViewModel de **Alta/Edición de Dirección** (usa SOLO tipos de dominio).
  */
 @HiltViewModel
 class AddressEditViewModel @Inject constructor(
@@ -161,7 +152,7 @@ class AddressEditViewModel @Inject constructor(
                 val id = repo.upsertAddress(
                     uid = uid,
                     aid = st.aid,
-                    input = AddressInput(
+                    input = DomainAddressInput(
                         label = r.sanitized.label,
                         recipientName = r.sanitized.recipientName,
                         phone = r.sanitized.phoneNormalized,
@@ -177,7 +168,7 @@ class AddressEditViewModel @Inject constructor(
                 if (f.setAsDefault) repo.setDefaultAddress(uid, id)
 
                 _ui.update { it.copy(loading = false, saved = true, aid = id) }
-                onDone(id) // cierre delegado a la pantalla (un solo camino de salida)
+                onDone(id)
             } catch (_: Throwable) {
                 _ui.update { it.copy(loading = false, saved = false, error = "No se pudo guardar") }
             }
@@ -186,7 +177,8 @@ class AddressEditViewModel @Inject constructor(
 
     /* ─────────── Privados ─────────── */
 
-    private fun Address.toForm() = FormState(
+    // Mapper de dominio → formulario
+    private fun DomainAddress.toForm() = FormState(
         label = label.orEmpty(),
         recipientName = recipientName.orEmpty(),
         phone = phone.orEmpty(),

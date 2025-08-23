@@ -1,27 +1,25 @@
-// data/address/AddressRepository.kt
-package com.sergiom.thebestdamkebap.data.address
+package com.sergiom.thebestdamkebap.domain.address
 
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Repositorio de **direcciones de usuario**.
  *
- * Contrato (agnóstico a UI):
+ * Contrato (agnóstico a UI y a la fuente de datos):
  * - Expone **flujos** para observar la lista y un elemento concreto.
  * - Ofrece operaciones de escritura para **crear/actualizar**, **eliminar** y **marcar como
  *   predeterminada** (campo `defaultAddressId` en `/users/{uid}`).
  *
  * Notas de diseño:
- * - La **validación y normalización** (reglas de negocio) no se hace aquí; vive en dominio
- *   (p. ej. [com.sergiom.thebestdamkebap.domain.address.ValidateAddressInputUseCase]).
- *   Este repo asume `AddressInput` ya saneado.
- * - El modelo [Address] **incluye** su `id` (no forma parte del documento en Firestore; se
- *   completa con `doc.id` en la implementación).
- * - Las marcas de tiempo (`createdAt`/`updatedAt`) se gestionan en **servidor** (serverTimestamp).
+ * - La **validación y normalización** (reglas de negocio) vive fuera del repo (p. ej. UseCases).
+ *   Este repo asume que [AddressInput] ya viene saneado.
+ * - El modelo [Address] **incluye** su `id` (no forma parte del documento en Firestore; la
+ *   implementación lo rellenará con `doc.id` si usa Firestore).
+ * - Las marcas de tiempo (`createdAt`/`updatedAt`) se gestionan en **servidor** si la impl. es Firestore.
  *
  * Errores:
- * - Las funciones `suspend` pueden fallar con excepciones de la capa de datos
- *   (permisos, red, validación de backend…). Deja que suban y mapéalas en el ViewModel.
+ * - Las funciones `suspend` pueden lanzar excepciones de la capa de datos (permisos, red, etc.).
+ *   La capa superior decide cómo mapearlas/mostrarlas.
  */
 interface AddressRepository {
 
@@ -33,9 +31,9 @@ interface AddressRepository {
      * - La implementación debe **rellenar** `Address.id` con el id del documento.
      * - Orden **no garantizado** por contrato; la UI/VM puede ordenar según convenga.
      *
-     * Comportamiento típico de la implementación (Firestore):
+     * Comportamiento típico (si la impl. usa Firestore):
      * - Flow **frío** que se activa al coleccionarse.
-     * - Emite inmediatamente (posiblemente lista vacía) y a continuación con cada snapshot.
+     * - Emite inmediatamente (posible lista vacía) y después con cada snapshot.
      */
     fun observeAddresses(uid: String): Flow<List<Address>>
 
@@ -55,12 +53,12 @@ interface AddressRepository {
      * Reglas:
      * - Si [aid] es `null` → crea **nuevo** documento y devuelve su `id`.
      * - Si [aid] tiene valor → hace **upsert** (merge) sobre ese documento.
-     * - Sólo se escriben los **campos no nulos** de [input] (merge parcial).
+     * - Solo se escriben los **campos no nulos** de [input] (merge parcial).
      * - **No** gestiona la predeterminada; usa [setDefaultAddress] aparte.
      *
      * Tiempos:
-     * - `updatedAt` se actualiza siempre (serverTimestamp).
-     * - `createdAt` sólo se establece en **creación** (no se sobreescribe).
+     * - `updatedAt` se actualiza siempre (serverTimestamp si aplica).
+     * - `createdAt` solo se establece en **creación** (no se sobreescribe).
      */
     suspend fun upsertAddress(uid: String, aid: String?, input: AddressInput): String
 
@@ -78,7 +76,7 @@ interface AddressRepository {
      *
      * Contrato:
      * - Debe **verificar** que la dirección existe; si no existe, lanzar error.
-     * - No modifica otras direcciones; sólo actualiza el campo del documento de usuario.
+     * - No modifica otras direcciones; solo actualiza el campo del documento de usuario.
      */
     suspend fun setDefaultAddress(uid: String, aid: String)
 }

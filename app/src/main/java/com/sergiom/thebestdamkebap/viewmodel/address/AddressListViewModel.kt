@@ -2,9 +2,9 @@ package com.sergiom.thebestdamkebap.viewmodel.address
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sergiom.thebestdamkebap.data.address.Address
-import com.sergiom.thebestdamkebap.data.address.AddressRepository
-import com.sergiom.thebestdamkebap.data.profile.ProfileRepository
+import com.sergiom.thebestdamkebap.domain.address.Address as DomainAddress
+import com.sergiom.thebestdamkebap.domain.address.AddressRepository
+import com.sergiom.thebestdamkebap.domain.profile.ProfileRepository
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -12,17 +12,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
- * AddressListViewModel — **Mis direcciones**.
- *
- * Cambios clave (Clean/MVVM):
- * - Se inyecta [AuthRepository] (dominio) en lugar de depender de FirebaseAuth.
- * - El usuario actual se deriva de `authRepo.currentUser` (Flow) y, con `collectLatest`,
- *   se cancelan automáticamente las suscripciones a datos cuando cambia el usuario.
- * - `combine(addresses, profile)` produce la lista enriquecida con `isDefault`.
- *
- * UI:
- * - [UiState] inmutable hacia fuera y [Event] para snackbars one-shot.
- * - Misma semántica que la versión anterior (loading/guest/errores).
+ * AddressListViewModel — Mis direcciones (usa tipos de dominio).
  */
 @HiltViewModel
 class AddressListViewModel @Inject constructor(
@@ -31,7 +21,6 @@ class AddressListViewModel @Inject constructor(
     private val profiles: ProfileRepository
 ) : ViewModel() {
 
-    /** Estado de UI para Compose (inmutable hacia fuera). */
     data class UiState(
         val loading: Boolean = true,
         val isGuest: Boolean = true,
@@ -39,13 +28,12 @@ class AddressListViewModel @Inject constructor(
         val error: String? = null
     )
 
-    /** Ítem de lista enriquecido con el flag `isDefault`. */
-    data class Item(val address: Address, val isDefault: Boolean)
+    /** Ítem de lista con el flag de predeterminada. */
+    data class Item(val address: DomainAddress, val isDefault: Boolean)
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
-    /** Eventos one-shot para snackbars. */
     private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 1)
     val events: SharedFlow<Event> = _events.asSharedFlow()
 
@@ -54,11 +42,10 @@ class AddressListViewModel @Inject constructor(
         data class Error(val text: String) : Event
     }
 
-    /** UID actual en memoria para acciones imperativas (setDefault/delete). */
+    /** UID actual para acciones imperativas (setDefault/delete). */
     private var currentUid: String? = null
 
     init {
-        // Cambios de usuario → cancelan las observaciones previas.
         viewModelScope.launch {
             authRepo.currentUser.collectLatest { du ->
                 if (du == null || du.isAnonymous) {
@@ -71,8 +58,8 @@ class AddressListViewModel @Inject constructor(
                 _ui.update { it.copy(loading = true, isGuest = false, error = null) }
 
                 combine(
-                    repo.observeAddresses(du.id),
-                    profiles.observeProfile(du.id)
+                    repo.observeAddresses(du.id),      // Flow<List<DomainAddress>>
+                    profiles.observeProfile(du.id)     // Flow<UserProfile?>
                 ) { list, prof ->
                     val defId = prof?.defaultAddressId
                     list.sortedBy { it.label ?: it.street }
@@ -95,7 +82,7 @@ class AddressListViewModel @Inject constructor(
         }
     }
 
-    /** Marca una dirección como **predeterminada**. */
+    /** Marca una dirección como predeterminada. */
     fun setDefault(aid: String) {
         val uid = currentUid ?: run {
             _events.tryEmit(Event.Error("Debes iniciar sesión"))
@@ -108,7 +95,7 @@ class AddressListViewModel @Inject constructor(
         }
     }
 
-    /** Elimina una dirección del usuario. */
+    /** Elimina una dirección. */
     fun delete(aid: String) {
         val uid = currentUid ?: run {
             _events.tryEmit(Event.Error("Debes iniciar sesión"))

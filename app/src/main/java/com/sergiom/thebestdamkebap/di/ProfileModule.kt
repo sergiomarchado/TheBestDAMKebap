@@ -1,7 +1,7 @@
 package com.sergiom.thebestdamkebap.di
 
 import com.sergiom.thebestdamkebap.data.profile.FirebaseProfileRepository
-import com.sergiom.thebestdamkebap.data.profile.ProfileRepository
+import com.sergiom.thebestdamkebap.domain.profile.ProfileRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
