@@ -214,11 +214,9 @@ fun ProfileScreen(
 
                         // Restablecer contraseña (envía email si hay)
                         OutlinedButton(
-                            onClick = viewModel::sendPasswordReset,
+                            onClick = { viewModel.sendPasswordReset() },
                             enabled = !loading && emailReadOnly.isNotBlank()
-                        ) {
-                            Text("Restablecer contraseña")
-                        }
+                        ) { Text("Restablecer contraseña") }
 
                         // Chip de feedback cuando el último guardado fue correcto
                         if (ui.saved) {

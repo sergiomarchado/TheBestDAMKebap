@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
-import com.sergiom.thebestdamkebap.data.profile.ProfileInput
+import com.sergiom.thebestdamkebap.domain.profile.ProfileInput as DomainProfileInput
 import com.sergiom.thebestdamkebap.domain.profile.ProfileRepository
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser
@@ -86,7 +86,7 @@ class AuthViewModel @Inject constructor(
                 profileRepo.upsertProfile(
                     uid = u.id,
                     email = u.email,
-                    input = ProfileInput()
+                    input = DomainProfileInput()
                 )
             }.onFailure { Log.w(TAG, "No se pudo sincronizar email en /users", it) }
         }
@@ -116,7 +116,9 @@ class AuthViewModel @Inject constructor(
             val u: DomainUser = authRepo.registerWithEmail(name, email, password)
 
             runCatching {
-                val input = ProfileInput(givenName = name?.trim().takeUnless { it.isNullOrEmpty() })
+                val input = DomainProfileInput(
+                    givenName = name?.trim().takeUnless { it.isNullOrEmpty() }
+                )
                 profileRepo.upsertProfile(
                     uid = u.id,
                     email = u.email ?: email,

@@ -1,8 +1,7 @@
 package com.sergiom.thebestdamkebap.domain.profile
 
-import com.sergiom.thebestdamkebap.data.profile.ProfileInput
-import com.sergiom.thebestdamkebap.data.profile.UserProfile
 import kotlinx.coroutines.flow.Flow
+
 
 /**
  * Contrato de acceso al **perfil de usuario** (p. ej., en Firestore).
@@ -26,48 +25,12 @@ import kotlinx.coroutines.flow.Flow
  */
 interface ProfileRepository {
 
-    /**
-     * Observa en tiempo real el perfil del usuario.
-     *
-     * @param uid ID del usuario (y del documento `/users/{uid}`).
-     * @return `Flow<UserProfile?>` que emite:
-     *   - `null` si el documento no existe.
-     *   - Un `UserProfile` cada vez que el documento cambia.
-     *
-     * Sugerencia de uso en UI:
-     * - Colecciona con `collectAsStateWithLifecycle()` para respetar el ciclo de vida.
-     */
+    /** Observa el perfil del usuario (o null si no existe). */
     fun observeProfile(uid: String): Flow<UserProfile?>
 
-    /**
-     * Garantiza que exista el documento de perfil.
-     *
-     * Qué hace:
-     * - Si **no existe**, lo crea con:
-     *   - `uid` (doc id), `email` (si se pasa), y los campos de [seed].
-     *   - `createdAt = serverTimestamp()`, `updatedAt = serverTimestamp()`.
-     * - Si **ya existe**, **no** hace cambios (ni siquiera `updatedAt`).
-     *
-     * @param uid   ID del usuario (doc `/users/{uid}`).
-     * @param email Email conocido (opcional; si es `null`, se ignora).
-     * @param seed  Datos iniciales (nombre, etc.). Los `null` se ignoran.
-     */
+    /** Crea el doc si no existe; si existe, no toca nada. */
     suspend fun ensureProfile(uid: String, email: String?, seed: ProfileInput)
 
-    /**
-     * Actualiza el perfil de forma idempotente (merge).
-     *
-     * Qué hace:
-     * - Escribe **solo** los campos no nulos de [input] y/o `email` si no es `null`.
-     * - Mantiene `createdAt` intacto.
-     * - Actualiza `updatedAt = serverTimestamp()`.
-     *
-     * @return El `UserProfile` resultante tras la escritura (si la implementación
-     *         hace un `get()`/read-back) o el último conocido.
-     *
-     * Recomendación:
-     * - Evitar enviar `null` para “borrar” campos desde aquí; si necesitas borrados,
-     *   expón un método específico (p. ej. `clearPhone(uid)`).
-     */
+    /** Upsert parcial (merge). Devuelve la representación de dominio. */
     suspend fun upsertProfile(uid: String, email: String?, input: ProfileInput): UserProfile
 }

@@ -10,6 +10,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -33,17 +34,13 @@ class FirebaseAuthRepository @Inject constructor(
      * Flujo reactivo del usuario actual.
      * Se basa en AuthStateListener y emite `DomainUser?` en cada cambio.
      */
-    override val currentUser: Flow<DomainUser?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener { fa ->
-            trySend(fa.currentUser?.toDomain())
-        }
-        auth.addAuthStateListener(listener)
-
-        // Emisión inicial por si el listener tarda en dispararse
-        trySend(auth.currentUser?.toDomain())
-
-        awaitClose { auth.removeAuthStateListener(listener) }
-    }
+    override val currentUser: Flow<DomainUser?> =
+        callbackFlow {
+            val listener = FirebaseAuth.AuthStateListener { fa -> trySend(fa.currentUser?.toDomain()) }
+            auth.addAuthStateListener(listener)
+            trySend(auth.currentUser?.toDomain())
+            awaitClose { auth.removeAuthStateListener(listener) }
+        }.distinctUntilChanged()
 
     /** Crea sesión anónima solo si no hay usuario. */
     override suspend fun signInAnonymouslyIfNeeded() {
