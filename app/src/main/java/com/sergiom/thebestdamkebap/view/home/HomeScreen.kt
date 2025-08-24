@@ -12,24 +12,10 @@ import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import com.sergiom.thebestdamkebap.viewmodel.home.HomeEvent
 import com.sergiom.thebestdamkebap.viewmodel.home.HomeViewModel
+import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.ui.Modifier
 
-/**
- * Pantalla **Home** (coordinador).
- *
- * Qué hace:
- * - Conecta los estados de [HomeViewModel] y [AuthViewModel].
- * - Gestiona mensajes puntuales (snackbars) y navegación al carrito.
- * - Muestra un diálogo de login cuando el usuario es invitado.
- * - Delega el “esqueleto” visual en [HomeShell] y el grafo interno en [HomeNavGraph].
- *
- * Por qué así:
- * - La UI no conoce detalles de datos; solo observa `ui`/`events` de los VMs.
- * - Los efectos de una sola vez (snackbars, navegar) se recogen con `LaunchedEffect(Unit)`.
- *
- * Callbacks de navegación (proveídos por el grafo superior):
- * - [onOpenLogin], [onOpenRegister], [onSignedOut], [onOpenCart].
- */
 @Composable
 fun HomeScreen(
     @DrawableRes logoRes: Int? = null,
@@ -45,10 +31,10 @@ fun HomeScreen(
     val user by authVm.user.collectAsStateWithLifecycle()
     val loading by authVm.loading.collectAsStateWithLifecycle()
 
-    // ¿Es invitado? (true cuando no hay usuario o es anónimo)
-    val userIsGuest = user == null || user!!.isAnonymous
+    // ¿Es invitado? (null o anónimo)
+    val userIsGuest = user?.isAnonymous != false
 
-    // Etiqueta visible del usuario (sin nullables forzados)
+    // Etiquetas visibles
     val userLabel = remember(user) {
         when {
             userIsGuest -> "Invitado"
@@ -62,7 +48,6 @@ fun HomeScreen(
     // --- Snackbars + efectos efímeros ---
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Eventos de Auth → snackbars informativos/errores
     LaunchedEffect(Unit) {
         authVm.events.collectLatest { ev ->
             when (ev) {
@@ -72,7 +57,6 @@ fun HomeScreen(
             }
         }
     }
-    // Eventos de Home → snackbars y navegación a carrito
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
@@ -83,9 +67,12 @@ fun HomeScreen(
         }
     }
 
-    // --- Diálogo de Login (solo para invitados) ---
+    // --- Diálogo de Login (reutilizable) ---
     var showLoginDialog by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(userIsGuest) { if (!userIsGuest) showLoginDialog = false }
+
+    // Para limpiar la sesión de pedido al cerrar sesión
+    val orderGateVm: OrderGateViewModel = hiltViewModel()
 
     // --- Shell + Navegación interna de Home ---
     HomeShell(
@@ -102,19 +89,21 @@ fun HomeScreen(
         },
         onSignOut = {
             authVm.signOut()
+            orderGateVm.clear()   // limpia contexto del pedido
             onSignedOut()
         },
-        onOpenCart = onOpenCart,
-        // Contenido principal: grafo interno de Home
-        content = { padding, navController ->
-            HomeNavGraph(
-                navController = navController,
-                modifier = androidx.compose.ui.Modifier.padding(padding)
-            )
-        }
-    )
+        onOpenCart = onOpenCart
+    ) { padding, navController ->
+        HomeNavGraph(
+            navController = navController,
+            modifier = Modifier.padding(padding),
+            isGuest = userIsGuest,
+            onRequestLogin = { showLoginDialog = true }, // el gate pedirá abrir este diálogo
+            onRequestRegister = onOpenRegister          // o llevar a registro
+        )
+    }
 
-    // Diálogo reutilizable para iniciar sesión desde Home
+    // Diálogo de login
     LoginDialogIfNeeded(
         show = showLoginDialog,
         loading = loading,

@@ -13,6 +13,19 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel de la portada de Home (HomeStartScreen).
+ *
+ * Responsabilidades:
+ * - Observar el usuario actual (invitado/registrado).
+ * - Combinar perfil + direcciones + preferencias (modo/dirección elegida).
+ * - Exponer un UiState inmutable y eventos one-shot (navegación/avisos).
+ * - Recordar última selección (modo / addressId) con SavedStateHandle.
+ *
+ * Notas:
+ * - No aplicamos distinctUntilChanged() sobre StateFlow (operator fusion).
+ * - Las promos se sirven como lista estática para no recalcular/emitir de más.
+ */
 @HiltViewModel
 class HomeStartViewModel @Inject constructor(
     private val auth: AuthRepository,
@@ -46,37 +59,55 @@ class HomeStartViewModel @Inject constructor(
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
-    /** Eventos one-shot. */
+    /** Eventos one-shot (navegación/avisos). */
     sealed interface Event {
         data class StartOrder(val mode: Mode, val addressId: String?) : Event
         data class Info(val text: String) : Event
         data class Error(val text: String) : Event
-        data object GoToAddAddress : Event
-        data object GoToAddressesList : Event
+        object GoToAddAddress : Event
+        object GoToAddressesList : Event
     }
     private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 1)
     val events: SharedFlow<Event> = _events.asSharedFlow()
 
+    /** Usuario actual (null → sin sesión; isAnonymous → invitado). */
     private val currentUser: StateFlow<DomainUser?> =
         auth.currentUser.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // Preferencias rápidas (se restauran en recreaciones de proceso).
+    // ───────── Preferencias ligeras (sobreviven a recreación de proceso) ─────────
+
     private val modeFlow: StateFlow<Mode> =
         savedState.getStateFlow(KEY_MODE, Mode.DELIVERY)
+
     private val preferredIdFlow: StateFlow<String?> =
         savedState.getStateFlow(KEY_SELECTED_ID, null)
 
+    // ───────── Promos (estáticas para no recalcular en cada emisión) ─────────
+
+    private val promosStatic: List<Promo> = listOf(
+        Promo("p1", "Promo1", "promos/promo2x1durumpollo.webp"),
+        Promo("p2", "Promo2", "promos/promoenviogratis.webp"),
+        Promo("p3", "Promo3", "promos/promocombodoble.webp"),
+    )
+
     init {
-        // Observar usuario → (perfil + direcciones + preferencias)
+        // Observar usuario → combinar (perfil + direcciones + preferencias)
         viewModelScope.launch {
             currentUser
+                // Reaccionar solo si cambia el uid (ignora cambios no relevantes)
                 .distinctUntilChanged { a, b -> a?.id == b?.id }
                 .collectLatest { du ->
                     if (du == null) {
-                        _ui.value = UiState(loading = false, isGuest = true, promos = defaultPromos())
+                        // Sin sesión: invitado
+                        _ui.value = UiState(
+                            loading = false,
+                            isGuest = true,
+                            promos = promosStatic
+                        )
                         return@collectLatest
                     }
 
+                    // Hay usuario: mostrar loading hasta combinar fuentes
                     _ui.update {
                         it.copy(
                             loading = true,
@@ -86,8 +117,10 @@ class HomeStartViewModel @Inject constructor(
                     }
 
                     combine(
-                        profiles.observeProfile(du.id),
-                        addresses.observeAddresses(du.id),
+                        // Estos suelen ser Flow "normales" → sí tiene sentido distinctUntilChanged
+                        profiles.observeProfile(du.id).distinctUntilChanged(),
+                        addresses.observeAddresses(du.id).distinctUntilChanged(),
+                        // Estos son StateFlow → NO usar distinctUntilChanged
                         modeFlow,
                         preferredIdFlow
                     ) { prof, list, mode, preferredId ->
@@ -102,11 +135,11 @@ class HomeStartViewModel @Inject constructor(
                             allAddresses = list,
                             selectedAddressId = selected,
                             canStart = canStart(mode, selected),
-                            promos = defaultPromos()
+                            promos = promosStatic
                         )
                     }
-                        .catch { _ ->
-                            // Si algo falla (red/permisos), informamos y paramos el loading.
+                        .catch {
+                            // Error de red/permisos → notificar y salir de loading
                             _events.tryEmit(Event.Error("No se pudo cargar tus datos."))
                             emit(_ui.value.copy(loading = false))
                         }
@@ -115,31 +148,43 @@ class HomeStartViewModel @Inject constructor(
         }
     }
 
-    /* ─────────── Intents ─────────── */
+    // ─────────────────────────────── Intents de la UI ───────────────────────────────
 
+    /** Cambiar el modo (DELIVERY / PICKUP). Se persiste en SavedStateHandle. */
     fun onModeChange(mode: Mode) {
         savedState[KEY_MODE] = mode
         _ui.update {
             val selected = chooseSelected(it.selectedAddressId, it.allAddresses, mode)
-            it.copy(mode = mode, selectedAddressId = selected, canStart = canStart(mode, selected))
+            it.copy(
+                mode = mode,
+                selectedAddressId = selected,
+                canStart = canStart(mode, selected)
+            )
         }
     }
 
+    /** Seleccionar dirección para envío (sólo efecto en DELIVERY). */
     fun onSelectAddress(addressId: String) {
         savedState[KEY_SELECTED_ID] = addressId
         _ui.update {
-            it.copy(selectedAddressId = addressId, canStart = canStart(it.mode, addressId))
+            it.copy(
+                selectedAddressId = addressId,
+                canStart = canStart(it.mode, addressId)
+            )
         }
     }
 
+    /** CTA: abrir pantalla para añadir una dirección nueva. */
     fun onAddAddressClicked() {
         _events.tryEmit(Event.GoToAddAddress)
     }
 
+    /** CTA: abrir gestión/listado de direcciones. */
     fun onManageAddressesClicked() {
         _events.tryEmit(Event.GoToAddressesList)
     }
 
+    /** CTA principal: empezar pedido (valida según el modo). */
     fun onStartOrderClicked() {
         val st = _ui.value
         if (!st.canStart) {
@@ -149,8 +194,9 @@ class HomeStartViewModel @Inject constructor(
         _events.tryEmit(Event.StartOrder(st.mode, st.selectedAddressId))
     }
 
-    /* ─────────── Privados ─────────── */
+    // ─────────────────────────────── Privados ───────────────────────────────
 
+    /** Regla de habilitado del CTA según modo. */
     private fun canStart(mode: Mode, addressId: String?): Boolean =
         when (mode) {
             Mode.PICKUP   -> true           // recoger no exige dirección
@@ -158,8 +204,9 @@ class HomeStartViewModel @Inject constructor(
         }
 
     /**
-     * Si PICKUP → null.
-     * Si DELIVERY → prioriza: [preferredId] (si existe) → primera de la lista → null.
+     * Estrategia de selección de dirección:
+     * - Si PICKUP → null (no se usa).
+     * - Si DELIVERY → prioriza: [preferredId] (si sigue en la lista) → primera → null.
      */
     private fun chooseSelected(
         preferredId: String?,
@@ -174,13 +221,6 @@ class HomeStartViewModel @Inject constructor(
             else -> null
         }
     }
-
-    /** Placeholder: cambia a Firestore/RemoteConfig cuando quieras hacerlo dinámico. */
-    private fun defaultPromos(): List<Promo> = listOf(
-        Promo("p1", "Promo1", "promos/promo2x1durumpollo.webp"),
-        Promo("p2", "Promo2",   "promos/promoenviogratis.webp"),
-        Promo("p3", "Promo3",         "promos/promocombodoble.webp"),
-    )
 
     private companion object {
         const val KEY_MODE = "mode"

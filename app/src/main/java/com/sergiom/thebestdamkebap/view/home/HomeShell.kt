@@ -72,9 +72,10 @@ fun HomeShell(
     onOpenRegister: () -> Unit,
     onSignOut: () -> Unit,
     onOpenCart: () -> Unit,
-    content: @Composable (padding: PaddingValues, navController: NavHostController) -> Unit,
     // Inyectable para previews/tests (permite pasar un navController de prueba)
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    content: @Composable (padding: PaddingValues, navController: NavHostController) -> Unit,
+
 ) {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)

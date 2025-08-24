@@ -8,16 +8,19 @@ package com.sergiom.thebestdamkebap.navigation
  * - Centralizar nombres de rutas y construcción de rutas con parámetros.
  * - Evitar duplicar strings “mágicos” repartidos por la app.
  *
- * Uso típico:
- * - En el NavHost de Home: `composable(HomeRoutes.PRODUCTS) { ... }`
- * - Para editar/crear dirección:
- *   - Nueva: `navController.navigate(HomeRoutes.AddressEdit.routeFor())`
- *   - Editar: `navController.navigate(HomeRoutes.AddressEdit.routeFor(aid))`
+ * Notas:
+ * - `PRODUCTS_GATE` es una ruta intermedia que muestra un “gate” (selección
+ *   de modo/dirección o “solo estoy mirando”) antes de entrar en `PRODUCTS`.
  */
 object HomeRoutes {
     // Tabs principales
     const val HOME = "home"
     const val OFFERS = "offers"
+
+    /** Ruta intermedia: pantalla/hoja que pide modo/dirección antes de Productos. */
+    const val PRODUCTS_GATE = "products_gate"
+
+    /** Pantalla real de productos. */
     const val PRODUCTS = "products"
 
     // Secciones de cuenta
@@ -27,6 +30,8 @@ object HomeRoutes {
 
     // Direcciones
     const val ADDRESSES = "account/addresses"
+
+    /** Ruta con placeholder para argumento opcional `aid`. */
     const val ADDRESS_EDIT = "account/addresses/edit?aid={aid}"
 
     /**

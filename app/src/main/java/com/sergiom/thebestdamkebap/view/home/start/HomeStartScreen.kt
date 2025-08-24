@@ -1,7 +1,5 @@
 package com.sergiom.thebestdamkebap.view.home.start
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,78 +7,41 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.SubcomposeAsyncImage
-import com.google.firebase.storage.FirebaseStorage
+import com.sergiom.thebestdamkebap.view.home.start.components.AddressBlock
+import com.sergiom.thebestdamkebap.view.home.start.components.ModeToggle
+import com.sergiom.thebestdamkebap.view.home.start.components.PromoCarouselFullBleed
+import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
+import com.sergiom.thebestdamkebap.view.home.start.utils.neonGlow
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import kotlinx.coroutines.flow.collectLatest
-import androidx.compose.animation.core.*
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.graphics.Shape
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -123,7 +84,7 @@ fun HomeStartScreen(
         initialValue = 1f,
         targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 1300, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseScale"
@@ -226,323 +187,6 @@ fun HomeStartScreen(
             if (ui.promos.isNotEmpty()) {
                 PromoCarouselFullBleed(promos = ui.promos)
             }
-        }
-    }
-}
-
-/* ─────────── Subcomposables ─────────── */
-
-@Composable
-private fun ModeToggle(
-    mode: HomeStartViewModel.Mode,
-    enabled: Boolean,
-    onChange: (HomeStartViewModel.Mode) -> Unit
-) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        FilterChip(
-            selected = mode == HomeStartViewModel.Mode.DELIVERY,
-            onClick = { onChange(HomeStartViewModel.Mode.DELIVERY) },
-            label = { Text("A domicilio") },
-            enabled = enabled,
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
-        FilterChip(
-            selected = mode == HomeStartViewModel.Mode.PICKUP,
-            onClick = { onChange(HomeStartViewModel.Mode.PICKUP) },
-            label = { Text("Para recoger") },
-            enabled = enabled,
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
-    }
-}
-
-@Composable
-private fun AddressBlock(
-    addresses: List<Pair<String, String>>,
-    selectedId: String?,
-    enabled: Boolean,
-    onSelect: (String) -> Unit,
-    onAddNew: () -> Unit,
-    onManage: () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val rotate by animateFloatAsState(if (expanded) 180f else 0f, label = "rotateExpand")
-
-    Surface(
-        tonalElevation = 4.dp,
-        shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize()
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Fila SIEMPRE visible
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Outlined.LocationOn, contentDescription = null)
-                Text(
-                    text = when {
-                        addresses.isEmpty() -> "Sin direcciones. Añade una nueva."
-                        selectedId == null  -> "Elige una dirección"
-                        else -> addresses.firstOrNull { it.first == selectedId }?.second ?: "Elige una dirección"
-                    },
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleSmall
-                )
-                IconButton(onClick = { expanded = !expanded }, enabled = enabled) {
-                    Icon(
-                        imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = if (expanded) "Contraer" else "Expandir",
-                        modifier = Modifier.graphicsLayer { rotationZ = rotate }
-                    )
-                }
-            }
-
-            // Contenido del desplegable: botones + lista (si hay)
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onAddNew, enabled = enabled) { Text("Añadir nueva") }
-                        TextButton(onClick = onManage, enabled = enabled) { Text("Gestionar direcciones") }
-                    }
-
-                    if (addresses.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            addresses.forEach { (id, label) ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    RadioButton(
-                                        selected = id == selectedId,
-                                        onClick = { if (enabled) onSelect(id) },
-                                        enabled = enabled
-                                    )
-                                    Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun PromoCarouselFullBleed(
-    promos: List<HomeStartViewModel.Promo>,
-    autoAdvanceMillis: Long = 3200
-) {
-    val pagerState = rememberPagerState { promos.size }
-    val colors = MaterialTheme.colorScheme
-    val storage = remember { FirebaseStorage.getInstance() } // usa el bucket del google-services.json
-
-    // Auto-slide
-    LaunchedEffect(pagerState.pageCount) {
-        if (pagerState.pageCount <= 1) return@LaunchedEffect
-        while (true) {
-            kotlinx.coroutines.delay(autoAdvanceMillis)
-            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
-        }
-    }
-
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(160.dp)
-    ) {
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            val promo = promos[page]
-            val ref = remember(promo.storagePath) { storage.reference.child(promo.storagePath) }
-
-            // Imagen full-bleed desde downloadUrl (funciona con Coil por defecto)
-            StorageImage(
-                ref = ref,
-                contentDescription = promo.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-
-            // Overlay (gradiente + título)
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                colors.primary.copy(alpha = 0f),
-                                colors.primary.copy(alpha = 0.55f)
-                            )
-                        )
-                    )
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                contentAlignment = Alignment.BottomStart
-            ) {
-                Text(promo.title, style = MaterialTheme.typography.titleLarge, color = colors.onPrimary)
-            }
-        }
-
-        // Dots
-        Row(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            repeat(pagerState.pageCount) { i ->
-                val active = i == pagerState.currentPage
-                Box(
-                    Modifier
-                        .size(if (active) 10.dp else 8.dp)
-                        .clip(CircleShape)
-                        .background(if (active) Color.White else Color.White.copy(alpha = 0.5f))
-                )
-            }
-        }
-    }
-}
-
-/** Carga la downloadUrl de un StorageReference y la muestra con Coil. */
-@Composable
-private fun StorageImage(
-    ref: com.google.firebase.storage.StorageReference,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop
-) {
-    // 1) Intento obtener la URL desde la caché
-    val cached = remember(ref.path) { StorageUrlMemoryCache.get(ref.path) }
-
-    // 2) Estado de la URL (null=cargando, ""=error, otra=ok)
-    val urlState = produceState(initialValue = cached, ref.path) {
-        if (cached != null) return@produceState  // nada que resolver
-        ref.downloadUrl
-            .addOnSuccessListener { url ->
-                val u = url.toString()
-                StorageUrlMemoryCache.put(ref.path, u)
-                value = u
-            }
-            .addOnFailureListener {
-                value = ""
-            }
-    }
-
-    when (val u = urlState.value) {
-        null -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        ""   -> Box(modifier, contentAlignment = Alignment.Center) { Text("No cargó 😕") }
-        else -> SubcomposeAsyncImage(
-            model = u,
-            contentDescription = contentDescription,
-            contentScale = contentScale,
-            modifier = modifier,
-            loading = { Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() } },
-            error   = {
-                // Si la URL dejó de valer (p.ej. has reemplazado el fichero y cambió el token),
-                // invalida la caché y vuelve a resolver en caliente.
-                StorageUrlMemoryCache.invalidate(ref.path)
-                // Forzamos un nuevo intento:
-                // (resetearíamos a null para disparar de nuevo produceState)
-            }
-        )
-    }
-}
-
-
-/* Utils */
-private fun formatAddressLine(street: String, number: String, city: String): String =
-    listOfNotNull(street.ifBlank { null }, number.ifBlank { null }, city.ifBlank { null })
-        .joinToString(", ")
-
-/* Cache simple en memoria para mapping path -> downloadUrl */
-private object StorageUrlMemoryCache {
-    private val map = java.util.concurrent.ConcurrentHashMap<String, String>()
-    fun get(path: String): String? = map[path]
-    fun put(path: String, url: String) { map[path] = url }
-    fun invalidate(path: String) { map.remove(path) }
-}
-
-fun Modifier.neonGlow(
-    enabled: Boolean,
-    color: Color,
-    shape: Shape,
-    thickness: Dp = 2.dp
-): Modifier = composed {
-    if (!enabled) return@composed Modifier
-
-    val infinite = rememberInfiniteTransition(label = "neonGlow")
-    // Barrido del brillo por el borde
-    val sweep by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
-        label = "sweep"
-    )
-    // Respiración del halo
-    val haloAlpha by infinite.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.65f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "halo"
-    )
-
-    drawWithCache {
-        // Convertimos el shape a Path para dibujar el contorno exactamente igual que el botón
-        val outline = shape.createOutline(size, layoutDirection, this)
-        val path = Path().apply {
-            when (outline) {
-                is Outline.Rounded   -> addRoundRect(outline.roundRect)
-                is Outline.Rectangle -> addRect(outline.rect)
-                is Outline.Generic   -> addPath(outline.path)
-            }
-        }
-        val strokePx = thickness.toPx()
-
-        onDrawWithContent {
-            drawContent()
-
-            // 1) Halo interior suave (varias pasadas con diferente grosor/alpha)
-            drawPath(path, color = color.copy(alpha = haloAlpha * 0.25f), style = Stroke(width = strokePx * 4))
-            drawPath(path, color = color.copy(alpha = haloAlpha * 0.15f), style = Stroke(width = strokePx * 7))
-
-            // 2) Borde base muy sutil
-            drawPath(path, color = color.copy(alpha = 0.25f), style = Stroke(width = strokePx))
-
-            // 3) Brillo que se desplaza por el borde (neón)
-            val w = size.width
-            val startX = -w + (w * 2f * sweep) // de izq -> der y vuelve a empezar
-            val brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    color.copy(alpha = haloAlpha),
-                    Color.Transparent
-                ),
-                start = Offset(startX, 0f),
-                end = Offset(startX + w / 2f, size.height)
-            )
-            drawPath(path, brush = brush, style = Stroke(width = strokePx * 1.6f))
         }
     }
 }
