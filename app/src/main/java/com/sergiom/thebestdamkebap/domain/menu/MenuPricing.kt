@@ -1,0 +1,63 @@
+package com.sergiom.thebestdamkebap.domain.menu
+
+import com.sergiom.thebestdamkebap.domain.catalog.Prices
+import com.sergiom.thebestdamkebap.domain.order.OrderMode
+
+/** Selección de un producto dentro de un grupo (con ingredientes quitados). */
+data class SelectedProduct(
+    val productId: String,
+    val removedIngredients: Set<String> = emptySet()
+)
+
+/** Selecciones del usuario por grupo (acepta varios si max > 1). */
+data class MenuSelections(
+    val byGroup: Map<String /* groupId */, List<SelectedProduct>>
+)
+
+/** Desglose de precio del menú. */
+data class PriceBreakdown(
+    val base: Long,     // precio base del menú según modo
+    val deltas: Long,   // suma de suplementos por las opciones elegidas
+    val extras: Long = 0L // (si más adelante añades addons con precio)
+) {
+    @Suppress("unused")
+    val total: Long get() = base + deltas + extras
+}
+
+/** Precio seguro (0 si falta). */
+fun priceFor(prices: Prices?, mode: OrderMode): Long =
+    when (mode) {
+        OrderMode.PICKUP   -> prices?.pickup ?: 0L
+        OrderMode.DELIVERY -> prices?.delivery ?: 0L
+    }
+
+/** Calcula el total del menú a partir de las selecciones. */
+@Suppress("unused")
+fun computeMenuTotal(menu: Menu, selections: MenuSelections, mode: OrderMode): PriceBreakdown {
+    val base = priceFor(menu.prices, mode)
+    var deltas = 0L
+
+    menu.groups.forEach { group ->
+        val chosen = selections.byGroup[group.id].orEmpty()
+        chosen.forEach { sel ->
+            val allowed = group.allowed.firstOrNull { it.productId == sel.productId }
+            deltas += priceFor(allowed?.delta, mode)
+        }
+    }
+    return PriceBreakdown(base = base, deltas = deltas)
+}
+
+/** Validación básica de selecciones (min/max y opciones permitidas). Devuelve lista de errores. */
+@Suppress("unused")
+fun validateMenuSelections(menu: Menu, selections: MenuSelections): List<String> {
+    val errors = mutableListOf<String>()
+    menu.groups.forEach { g ->
+        val chosen = selections.byGroup[g.id].orEmpty()
+        if (chosen.size < g.min || chosen.size > g.max) {
+            errors += "Grupo '${g.name}': selecciona entre ${g.min} y ${g.max}."
+        }
+        val allowedIds = g.allowed.map { it.productId }.toSet()
+        chosen.forEach { if (it.productId !in allowedIds) errors += "Opción no permitida en '${g.name}'." }
+    }
+    return errors
+}

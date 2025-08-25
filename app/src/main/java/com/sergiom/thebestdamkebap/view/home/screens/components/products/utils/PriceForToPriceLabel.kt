@@ -12,10 +12,12 @@ internal fun Product.priceFor(mode: OrderMode?): Long? = when (mode) {
     OrderMode.PICKUP, null -> prices.pickup ?: prices.delivery
 }
 
-internal fun Long.toPriceLabel(
+internal fun Long?.toPriceLabel(
     locale: Locale = Locale.forLanguageTag("es-ES")
 ): String {
-    val nf = NumberFormat.getCurrencyInstance(locale)
-    return nf.format(this / 100.0) // céntimos → euros
+    return this?.let {
+        val nf = NumberFormat.getCurrencyInstance(locale)
+        nf.format(it / 100.0)
+    } ?: "—"
 }
 
