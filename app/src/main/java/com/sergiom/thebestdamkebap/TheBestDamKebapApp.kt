@@ -2,10 +2,14 @@ package com.sergiom.thebestdamkebap
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.util.DebugLogger
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.sergiom.thebestdamkebap.core.imageloading.StorageUrlMemoryCache
 import dagger.hilt.android.HiltAndroidApp
 
 /**
@@ -44,19 +48,21 @@ import dagger.hilt.android.HiltAndroidApp
  *   **rechaza** la solicitud; útil para probar rutas de error.
  */
 @HiltAndroidApp
-class TheBestDamKebapApp : Application() {
+class TheBestDamKebapApp : Application(), ImageLoaderFactory {
+
+    private var isDebugBuild: Boolean = false
     override fun onCreate() {
         super.onCreate()
+        // Detectar "debuggeable"
+        isDebugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         // Inicializa Firebase. Es seguro llamarlo aunque ya esté auto-inicializado:
         // FirebaseApp.initializeApp(...) es idempotente.
         FirebaseApp.initializeApp(this)
 
-        // Detectar "debuggeable"
-        val isDebug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         // Selecciona el proveedor de App Check según el tipo de build:
-        val factory = if(isDebug){
+        val factory = if (isDebugBuild) {
             DebugAppCheckProviderFactory.getInstance()
         } else {
             PlayIntegrityAppCheckProviderFactory.getInstance()
@@ -67,5 +73,27 @@ class TheBestDamKebapApp : Application() {
         val appCheck = FirebaseAppCheck.getInstance()
         appCheck.installAppCheckProviderFactory(factory)
 
+    }
+
+    // Coil v2
+    override fun newImageLoader(): ImageLoader =
+        ImageLoader.Builder(this)
+            .respectCacheHeaders(false)
+            .crossfade(true)
+            .apply { if (isDebugBuild) logger(DebugLogger()) }
+            .build()
+
+    // Limpia tu caché de URLs cuando la UI se va al fondo
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_UI_HIDDEN) {
+            StorageUrlMemoryCache.clear()
+        }
+    }
+
+    // Limpia tu caché de URLs en memoria baja
+    override fun onLowMemory() {
+        super.onLowMemory()
+        StorageUrlMemoryCache.clear()
     }
 }

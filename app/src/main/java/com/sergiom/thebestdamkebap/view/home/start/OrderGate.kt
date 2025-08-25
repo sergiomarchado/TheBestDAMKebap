@@ -3,18 +3,20 @@ package com.sergiom.thebestdamkebap.view.home.start
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.view.home.start.components.AddressBlock
 import com.sergiom.thebestdamkebap.view.home.start.components.ModeToggle
 import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
-import com.sergiom.thebestdamkebap.domain.order.OrderMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,31 +27,36 @@ fun OrderGate(
     onManageAddresses: () -> Unit,
     onRequestLogin: () -> Unit,
     onRequestRegister: () -> Unit,
-    gateVm: OrderGateViewModel = hiltViewModel(),
-    startVm: HomeStartViewModel = hiltViewModel()
+    gateVm: OrderGateViewModel = hiltViewModel()
 ) {
     val ctx by gateVm.context.collectAsStateWithLifecycle()
-    val ui  by startVm.ui.collectAsStateWithLifecycle()
 
-    // ── Regla de apertura del sheet ───────────────────────────────────────────────
-    val mustGate: Boolean = if (isGuest) {
-        // Invitado: solo pedimos si no hay contexto y no eligió "solo mirando"
-        ctx.mode == null && !ctx.browsingOnly
+    // Si es invitado: pedimos SIEMPRE al entrar la primera vez en esta sesión.
+    var dismissedThisSession by rememberSaveable { mutableStateOf(false) }
+
+    val needsSetup = if (isGuest) {
+        !dismissedThisSession
     } else {
-        // Logeado: exigimos configuración válida siempre
-        val pickupOk   = ui.mode == HomeStartViewModel.Mode.PICKUP
-        val deliveryOk = ui.mode == HomeStartViewModel.Mode.DELIVERY &&
-                ui.allAddresses.isNotEmpty() && ui.selectedAddressId != null
-        !(pickupOk || deliveryOk)
+        ctx.mode == null && !ctx.browsingOnly
     }
 
-    if (!mustGate) {
+    var showSheet by remember { mutableStateOf(needsSetup) }
+
+    LaunchedEffect(isGuest, ctx.mode, ctx.browsingOnly, dismissedThisSession) {
+        showSheet = if (isGuest) !dismissedThisSession else (ctx.mode == null && !ctx.browsingOnly)
+    }
+
+    if (!showSheet) {
         onReady()
         return
     }
 
+    // Reutilizamos el VM de HomeStart para la UI de selección
+    val startVm: HomeStartViewModel = hiltViewModel()
+    val ui by startVm.ui.collectAsStateWithLifecycle()
+
     ModalBottomSheet(
-        onDismissRequest = { /* obligamos a elegir; no se cierra tocando fuera */ },
+        onDismissRequest = { /* obligado elegir o “mirar”; no cerramos tocando fuera */ },
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
@@ -81,21 +88,9 @@ fun OrderGate(
                     selectedId = ui.selectedAddressId,
                     enabled = !ui.loading,
                     onSelect = startVm::onSelectAddress,
-                    onAddNew = {
-                        if (isGuest) onRequestLogin() else onAddAddress()
-                    },
-                    onManage = {
-                        if (isGuest) onRequestLogin() else onManageAddresses()
-                    }
+                    onAddNew = onAddAddress,
+                    onManage = onManageAddresses
                 )
-
-                if (isGuest) {
-                    // Cuña de login/registro si es invitado e intenta añadir direcciones
-                    AssistChipRow(
-                        onLogin = onRequestLogin,
-                        onRegister = onRequestRegister
-                    )
-                }
             }
 
             // 3) Acciones
@@ -103,6 +98,7 @@ fun OrderGate(
                 FilledTonalButton(
                     onClick = {
                         gateVm.confirmStart(ui.mode.toDomain(), ui.selectedAddressId)
+                        dismissedThisSession = true
                     },
                     enabled = ui.canStart && !ui.loading,
                     modifier = Modifier.fillMaxWidth(),
@@ -113,27 +109,32 @@ fun OrderGate(
                     shape = MaterialTheme.shapes.large
                 ) { Text("Empezar pedido") }
 
-                if (isGuest) {
-                    TextButton(
-                        onClick = { gateVm.chooseBrowsing() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Solo estoy mirando") }
+                TextButton(
+                    onClick = {
+                        gateVm.chooseBrowsing()
+                        dismissedThisSession = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Solo estoy mirando") }
+            }
+
+            // 4) Invitado: CTA de acceso/registro
+            if (isGuest) {
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onRequestLogin,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Iniciar sesión") }
+                    OutlinedButton(
+                        onClick = onRequestRegister,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Registrarse") }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
         }
-    }
-}
-
-@Composable
-private fun AssistChipRow(
-    onLogin: () -> Unit,
-    onRegister: () -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AssistChip(onClick = onLogin,  label = { Text("Iniciar sesión") })
-        AssistChip(onClick = onRegister, label = { Text("Registrarse") })
     }
 }
 

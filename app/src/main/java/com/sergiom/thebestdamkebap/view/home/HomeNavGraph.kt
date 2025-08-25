@@ -18,6 +18,7 @@ import com.sergiom.thebestdamkebap.navigation.HomeRoutes
 import com.sergiom.thebestdamkebap.view.home.screens.AddressEditScreen
 import com.sergiom.thebestdamkebap.view.home.screens.AddressListScreen
 import com.sergiom.thebestdamkebap.view.home.screens.OrdersScreen
+import com.sergiom.thebestdamkebap.view.home.screens.ProductsScreen
 import com.sergiom.thebestdamkebap.view.home.screens.ProfileScreen
 import com.sergiom.thebestdamkebap.view.home.screens.SettingsScreen
 import com.sergiom.thebestdamkebap.view.home.start.HomeStartScreen
@@ -72,7 +73,7 @@ fun HomeNavGraph(
         composable(HomeRoutes.PRODUCTS) {
             OrderGate(
                 isGuest = isGuest,
-                onReady = { PlaceholderScreen("Productos") }, // ← sustituye por tu ProductsScreen real
+                onReady = { ProductsScreen() },
                 onAddAddress = { navController.navigate(HomeRoutes.AddressEdit.routeFor()) },
                 onManageAddresses = { navController.navigate(HomeRoutes.ADDRESSES) },
                 onRequestLogin = onRequestLogin,

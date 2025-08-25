@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.google.firebase.storage.FirebaseStorage
+import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 
 @OptIn(ExperimentalFoundationApi::class)

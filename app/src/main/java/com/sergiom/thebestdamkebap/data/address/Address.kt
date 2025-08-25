@@ -24,18 +24,3 @@ data class Address(
     @ServerTimestamp var updatedAt: Date? = null
 )
 
-/** Entrada de edición/alta (merge). */
-data class AddressInput(
-    val label: String? = null,
-    val recipientName: String? = null,
-    val phone: String? = null,
-    val street: String? = null,
-    val number: String? = null,
-    val floorDoor: String? = null,
-    val city: String? = null,
-    val province: String? = null,
-    val postalCode: String? = null,
-    val notes: String? = null,
-    val lat: Double? = null,
-    val lng: Double? = null,
-)
