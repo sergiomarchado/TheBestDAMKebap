@@ -29,7 +29,7 @@ internal fun ProductCard(
 ) {
     val priceLabel = product.priceFor(mode).toPriceLabel()
 
-    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+    val border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
     val shape = MaterialTheme.shapes.large
 
     if (onClick != null) {

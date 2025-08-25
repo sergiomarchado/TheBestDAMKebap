@@ -163,4 +163,6 @@ class ProductsViewModel @Inject constructor(
             savedState[KEY_SEL_CAT] = id
         }
     }
+    suspend fun loadProductsByIds(ids: List<String>): List<Product> =
+        catalog.getProductsByIds(ids)
 }

@@ -8,4 +8,7 @@ interface CatalogRepository {
 
     /** Productos activos. Si [categoryId] != null, filtrados por esa categoría. */
     fun observeProducts(categoryId: String?): Flow<List<Product>>
+
+    //Lectura puntual por ids
+    suspend fun getProductsByIds(ids: List<String>): List<Product>
 }

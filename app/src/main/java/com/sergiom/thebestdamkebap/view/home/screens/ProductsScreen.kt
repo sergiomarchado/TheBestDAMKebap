@@ -7,15 +7,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,6 +27,8 @@ import com.sergiom.thebestdamkebap.core.firebase.rememberStorage
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.domain.menu.Menu
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
+import com.sergiom.thebestdamkebap.view.home.screens.components.dialogs.MenuBuilderDialog
+import com.sergiom.thebestdamkebap.view.home.screens.components.dialogs.ProductCustomizeDialog
 import com.sergiom.thebestdamkebap.view.home.screens.components.products.CategoryRow
 import com.sergiom.thebestdamkebap.view.home.screens.components.products.ProductCard
 import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.toPriceLabel
@@ -31,12 +36,14 @@ import com.sergiom.thebestdamkebap.viewmodel.products.ProductsViewModel
 
 @Composable
 fun ProductsScreen(
-    viewModel: ProductsViewModel = hiltViewModel(),
-    onOpenProductDetail: (String) -> Unit = {},   // ← nuevo
-    onOpenMenuDetail: (String) -> Unit = {}       // ← nuevo
+    viewModel: ProductsViewModel = hiltViewModel()
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val storage = rememberStorage()
+
+    // --- estado de diálogos ---
+    var openProductId by remember { mutableStateOf<String?>(null) }
+    var openMenuId by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize()) {
         if (ui.loading) {
@@ -65,10 +72,50 @@ fun ProductsScreen(
                     items = ui.items,
                     mode = ui.mode,
                     storage = storage,
-                    onOpenProductDetail = onOpenProductDetail, // ← pasa lambdas
-                    onOpenMenuDetail = onOpenMenuDetail
+                    onOpenProductDetail = { id -> openProductId = id },
+                    onOpenMenuDetail = { id -> openMenuId = id }
                 )
             }
+        }
+    }
+
+    // ---- Diálogo de PRODUCTO ----
+    openProductId?.let { id ->
+        val prod = (ui.items.firstOrNull { it.id == id }
+                as? ProductsViewModel.CatalogItem.ProductItem)?.product
+        if (prod != null) {
+            ProductCustomizeDialog(
+                product = prod,
+                mode = ui.mode,
+                onDismiss = { openProductId = null },
+                onConfirm = { customization ->
+                    // TODO: añadir al carrito (prod, customization)
+                    openProductId = null
+                }
+            )
+        } else {
+            openProductId = null
+        }
+    }
+
+    // ---- Diálogo de MENÚ ----
+    openMenuId?.let { id ->
+        val menu = (ui.items.firstOrNull { it.id == id }
+                as? ProductsViewModel.CatalogItem.MenuItem)?.menu
+        if (menu != null) {
+            MenuBuilderDialog(
+                menu = menu,
+                mode = ui.mode,
+                storage = storage,
+                loadProductsByIds = { ids -> viewModel.loadProductsByIds(ids) },
+                onDismiss = { openMenuId = null },
+                onConfirm = { selection ->
+                    // TODO: añadir al carrito con la selección construida
+                    openMenuId = null
+                }
+            )
+        } else {
+            openMenuId = null
         }
     }
 }
@@ -82,6 +129,13 @@ private fun ItemsList(
     onOpenProductDetail: (String) -> Unit,
     onOpenMenuDetail: (String) -> Unit
 ) {
+    Text(
+        text = "Productos:",
+        style = MaterialTheme.typography.titleLarge,
+        overflow = TextOverflow.Ellipsis,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 12.dp, start = 12.dp)
+    )
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
@@ -94,7 +148,7 @@ private fun ItemsList(
                         product = item.product,
                         mode = mode,
                         storage = storage,
-                        onClick = { onOpenProductDetail(item.id) } // ← navega a detalle producto
+                        onClick = { onOpenProductDetail(item.id) }
                     )
                 }
                 is ProductsViewModel.CatalogItem.MenuItem -> {
@@ -102,7 +156,7 @@ private fun ItemsList(
                         menu = item.menu,
                         mode = mode,
                         storage = storage,
-                        onClick = { onOpenMenuDetail(item.id) }    // ← navega a detalle menú
+                        onClick = { onOpenMenuDetail(item.id) }
                     )
                 }
             }
@@ -125,7 +179,7 @@ private fun MenuCard(
     val priceLabel = priceCents.toPriceLabel()
 
     val shape = MaterialTheme.shapes.large
-    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+    val border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
     val imageShape = RoundedCornerShape(
         topStart = shape.topStart,
         bottomStart = shape.bottomStart,
@@ -199,4 +253,3 @@ private fun MenuCard(
         ) { content() }
     }
 }
-
