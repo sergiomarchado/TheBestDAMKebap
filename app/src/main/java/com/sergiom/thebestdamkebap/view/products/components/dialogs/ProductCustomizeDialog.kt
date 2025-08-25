@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens.components.dialogs
+package com.sergiom.thebestdamkebap.view.products.components.dialogs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,7 +45,7 @@ import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.domain.catalog.Product
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.toPriceLabel
+import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 
 /**
  * UI de personalización de un producto: permitir quitar ingredientes.

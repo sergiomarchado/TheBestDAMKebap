@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens.components.products.utils
+package com.sergiom.thebestdamkebap.view.products.components.products.utils
 
 import com.sergiom.thebestdamkebap.domain.catalog.Product
 import com.sergiom.thebestdamkebap.domain.order.OrderMode

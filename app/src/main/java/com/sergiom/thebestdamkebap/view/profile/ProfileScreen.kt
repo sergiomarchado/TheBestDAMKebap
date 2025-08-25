@@ -1,5 +1,5 @@
-// view/home/screens/ProfileScreen.kt
-package com.sergiom.thebestdamkebap.view.home.screens
+// view/home/products/ProfileScreen.kt
+package com.sergiom.thebestdamkebap.view.profile
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

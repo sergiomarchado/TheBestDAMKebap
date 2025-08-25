@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens
+package com.sergiom.thebestdamkebap.view.address
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

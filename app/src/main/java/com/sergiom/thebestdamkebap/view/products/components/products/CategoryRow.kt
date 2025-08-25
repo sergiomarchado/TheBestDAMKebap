@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens.components.products
+package com.sergiom.thebestdamkebap.view.products.components.products
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth

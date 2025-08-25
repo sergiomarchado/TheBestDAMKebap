@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens.components.dialogs
+package com.sergiom.thebestdamkebap.view.products.components.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,7 +31,7 @@ import com.sergiom.thebestdamkebap.domain.menu.MenuAllowed
 import com.sergiom.thebestdamkebap.domain.menu.MenuGroup
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.toPriceLabel
+import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 
 data class MenuSelection(
     val menuId: String,

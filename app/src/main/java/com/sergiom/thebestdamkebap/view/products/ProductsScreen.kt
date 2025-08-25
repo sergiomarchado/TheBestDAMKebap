@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens
+package com.sergiom.thebestdamkebap.view.products
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -27,11 +27,11 @@ import com.sergiom.thebestdamkebap.core.firebase.rememberStorage
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.domain.menu.Menu
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
-import com.sergiom.thebestdamkebap.view.home.screens.components.dialogs.MenuBuilderDialog
-import com.sergiom.thebestdamkebap.view.home.screens.components.dialogs.ProductCustomizeDialog
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.CategoryRow
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.ProductCard
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.toPriceLabel
+import com.sergiom.thebestdamkebap.view.products.components.dialogs.MenuBuilderDialog
+import com.sergiom.thebestdamkebap.view.products.components.dialogs.ProductCustomizeDialog
+import com.sergiom.thebestdamkebap.view.products.components.products.CategoryRow
+import com.sergiom.thebestdamkebap.view.products.components.products.ProductCard
+import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 import com.sergiom.thebestdamkebap.viewmodel.products.ProductsViewModel
 
 @Composable

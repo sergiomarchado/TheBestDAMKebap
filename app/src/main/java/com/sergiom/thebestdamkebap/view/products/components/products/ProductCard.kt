@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens.components.products
+package com.sergiom.thebestdamkebap.view.products.components.products
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -17,8 +17,8 @@ import com.google.firebase.storage.FirebaseStorage
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.domain.catalog.Product
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.priceFor
-import com.sergiom.thebestdamkebap.view.home.screens.components.products.utils.toPriceLabel
+import com.sergiom.thebestdamkebap.view.products.components.products.utils.priceFor
+import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 
 @Composable
 internal fun ProductCard(

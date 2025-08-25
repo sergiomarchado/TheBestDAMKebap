@@ -1,4 +1,4 @@
-package com.sergiom.thebestdamkebap.view.home.screens
+package com.sergiom.thebestdamkebap.view.orders
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,12 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 /**
- * Pantalla **Configuración** (stub).
- * Futuro: tema, idioma, notificaciones, consentimiento analytics, etc.
+ * Pantalla **Últimos pedidos** (stub).
+ * Futuro: listado de pedidos, detalle, repetir pedido, factura, etc.
  */
 @Composable
-fun SettingsScreen() {
+fun OrdersScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Configuración (próximamente)")
+        Text("Últimos pedidos (próximamente)")
     }
 }

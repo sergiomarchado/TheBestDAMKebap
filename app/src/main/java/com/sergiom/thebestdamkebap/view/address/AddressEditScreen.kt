@@ -1,5 +1,5 @@
-// view/home/screens/address/AddressEditScreen.kt
-package com.sergiom.thebestdamkebap.view.home.screens
+// view/home/products/address/AddressEditScreen.kt
+package com.sergiom.thebestdamkebap.view.address
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
