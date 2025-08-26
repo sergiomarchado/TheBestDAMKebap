@@ -30,10 +30,11 @@ import kotlinx.coroutines.flow.collectLatest
  * - VM expone `ui` (estado) + `events` (one-shot).
  * - UI observa `ui` con `collectAsStateWithLifecycle()` y reacciona a `events` en `LaunchedEffect`.
  */
+@Suppress("KotlinConstantConditions")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressListScreen(
-    onBack: () -> Unit,                // se mantiene por compatibilidad (no se usa aquí)
+    @Suppress("unused") onBack: () -> Unit,                // se mantiene por compatibilidad (no se usa aquí)
     onAddNew: () -> Unit,
     onEdit: (String) -> Unit,
     vm: AddressListViewModel = hiltViewModel()

@@ -12,15 +12,21 @@ import com.sergiom.thebestdamkebap.domain.menu.MenuRepository
 import com.sergiom.thebestdamkebap.domain.order.OrderContext
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.domain.order.OrderSessionRepository
+import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
+import com.sergiom.thebestdamkebap.domain.cart.CartRepository
+import com.sergiom.thebestdamkebap.domain.cart.MenuSelection as DomainMenuSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import com.sergiom.thebestdamkebap.view.products.components.dialogs.MenuSelection as UiMenuSelection
 
 @HiltViewModel
 class ProductsViewModel @Inject constructor(
     private val catalog: CatalogRepository,
-    private val menus: MenuRepository,                 // ⬅️ NUEVO
+    private val menus: MenuRepository,
+    private val cart: CartRepository,                // ⬅️ carrito
     session: OrderSessionRepository,
     private val savedState: SavedStateHandle
 ) : ViewModel() {
@@ -55,7 +61,7 @@ class ProductsViewModel @Inject constructor(
         val loading: Boolean = true,
         val categories: List<Category> = emptyList(),
         val selectedCategoryId: String? = null,
-        val items: List<CatalogItem> = emptyList(),      // ⬅️ unificado
+        val items: List<CatalogItem> = emptyList(),
         val mode: OrderMode? = null,
         val browsingOnly: Boolean = false
     )
@@ -124,7 +130,7 @@ class ProductsViewModel @Inject constructor(
                 }
                     .distinctUntilChanged()
                     .map<List<CatalogItem>, ItemsPhase> { ItemsPhase.Data(it) }
-                    .onStart { emit(ItemsPhase.Loading) } // loading al cambiar categoría
+                    .onStart { emit(ItemsPhase.Loading) }
             }
         }
 
@@ -163,6 +169,35 @@ class ProductsViewModel @Inject constructor(
             savedState[KEY_SEL_CAT] = id
         }
     }
+
+    /** Para diálogos: resolver productos por id (Firestore). */
     suspend fun loadProductsByIds(ids: List<String>): List<Product> =
         catalog.getProductsByIds(ids)
+
+    /* ==================== Carrito ==================== */
+
+    /** Añade un producto suelto (con o sin customización) al carrito. */
+    fun addProductToCart(product: Product, customization: ProductCustomization?) {
+        val mode = ui.value.mode
+        viewModelScope.launch {
+            if (mode != null) cart.setMode(mode)
+            cart.addProduct(product, customization, qty = 1)
+        }
+    }
+
+    /**
+     * Añade un menú al carrito.
+     * Recibe el `MenuSelection` del diálogo (UI) y lo mapea al `MenuSelection` de dominio.
+     */
+    fun addMenuToCart(menu: Menu, uiSelection: UiMenuSelection) {
+        val mode = ui.value.mode
+        val domainSelections: Map<String, List<DomainMenuSelection.Selection>> =
+            uiSelection.selections.mapValues { (_, list) ->
+                list.map { DomainMenuSelection.Selection(it.productId, it.customization) }
+            }
+        viewModelScope.launch {
+            if (mode != null) cart.setMode(mode)
+            cart.addMenu(menu, domainSelections, qty = 1)
+        }
+    }
 }

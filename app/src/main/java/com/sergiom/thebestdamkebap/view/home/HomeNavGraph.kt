@@ -17,6 +17,7 @@ import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.navigation.HomeRoutes
 import com.sergiom.thebestdamkebap.view.address.AddressEditScreen
 import com.sergiom.thebestdamkebap.view.address.AddressListScreen
+import com.sergiom.thebestdamkebap.view.cart.CartScreen
 import com.sergiom.thebestdamkebap.view.orders.OrdersScreen
 import com.sergiom.thebestdamkebap.view.products.ProductsScreen
 import com.sergiom.thebestdamkebap.view.profile.ProfileScreen
@@ -112,12 +113,20 @@ fun HomeNavGraph(
                 onClose = { navController.popBackStack() }
             )
         }
+
+        composable(HomeRoutes.CART) {
+            CartScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
+
+
 /* ═══════════ Placeholder mínimo ═══════════ */
 @Composable
-private fun PlaceholderScreen(title: String) {
+private fun PlaceholderScreen(@Suppress("SameParameterValue") title: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(title, style = MaterialTheme.typography.headlineSmall)
     }

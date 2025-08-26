@@ -95,10 +95,15 @@ fun HomeShell(
 
     // Ruta actual (solo entre las top) para resaltar tab y gestionar re-selección
     val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+    // calcula la ruta "top" actual
     val currentRoute = navBackStackEntry?.destination
         ?.hierarchy
-        ?.firstOrNull { it.route in topRoutes }
+        ?.firstOrNull { it.route in topRoutes + setOf(HomeRoutes.CART) }
         ?.route
+
+    // MUESTRA el FAB salvo en la pantalla del carrito
+    val showFab = currentRoute != HomeRoutes.CART
 
     /* ───────────────── Drawer + Scaffold ───────────────── */
 
@@ -185,21 +190,26 @@ fun HomeShell(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = onOpenCart,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    // Badge solo si hay artículos en carrito
-                    BadgedBox(badge = {
-                        if (cartCount > 0) Badge { Text("$cartCount") }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Outlined.ShoppingCart,
-                            // A11y: ideal mover a strings.xml
-                            contentDescription = "Carrito ($cartCount)"
-                        )
+                if(showFab){
+                    FloatingActionButton(
+                        onClick = onOpenCart,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        // Badge solo si hay artículos en carrito
+                        BadgedBox(badge = {
+                            if (cartCount > 0) Badge { Text("$cartCount") }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Outlined.ShoppingCart,
+                                // A11y: ideal mover a strings.xml
+                                contentDescription = "Carrito ($cartCount)"
+                            )
+                        }
                     }
+
                 }
+
+
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
         ) { padding ->

@@ -1,37 +1,16 @@
 package com.sergiom.thebestdamkebap.view.products.components.dialogs
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.DividerDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.*
 import androidx.compose.material3.FilterChipDefaults.filterChipBorder
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +25,10 @@ import com.sergiom.thebestdamkebap.domain.catalog.Product
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
 import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /**
  * UI de personalización de un producto: permitir quitar ingredientes.
@@ -72,8 +55,14 @@ fun ProductCustomizeDialog(
         else FirebaseStorage.getInstance("gs://$bucket")
     }
 
-    // Estado de ingredientes quitados
-    val removed = remember(product.id) {
+    // Estado de ingredientes quitados (persistente)
+    val removed = rememberSaveable(
+        product.id,
+        saver = listSaver(
+            save = { it.toList() },
+            restore = { it.toMutableStateList() }
+        )
+    ) {
         mutableStateListOf<String>().apply {
             initial?.removedIngredients?.let { addAll(it) }
         }
@@ -97,6 +86,7 @@ fun ProductCustomizeDialog(
                 .widthIn(max = 720.dp)
         ) {
             Column(Modifier.fillMaxWidth()) {
+
                 // Header compacto con miniatura + título + precio
                 Row(
                     Modifier
@@ -174,15 +164,20 @@ fun ProductCustomizeDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            val allRemoved = removed.size == product.ingredients.size
+                            val noneRemoved = removed.isEmpty()
+
                             AssistChip(
                                 onClick = {
                                     removed.clear()
                                     removed.addAll(product.ingredients)
                                 },
+                                enabled = !allRemoved,
                                 label = { Text("Quitar todo") }
                             )
                             AssistChip(
                                 onClick = { removed.clear() },
+                                enabled = !noneRemoved,
                                 label = { Text("Restaurar") }
                             )
                             Spacer(Modifier.weight(1f))
@@ -197,7 +192,11 @@ fun ProductCustomizeDialog(
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics {
+                                    contentDescription = "Ingredientes personalizables"
+                                }
                         ) {
                             product.ingredients.forEach { ing ->
                                 val isRemoved = ing in removed
@@ -206,7 +205,9 @@ fun ProductCustomizeDialog(
                                     onClick = {
                                         if (isRemoved) removed.remove(ing) else removed.add(ing)
                                     },
-                                    label = { Text(ing, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    label = {
+                                        Text(ing, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    },
                                     colors = FilterChipDefaults.filterChipColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant,

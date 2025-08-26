@@ -27,6 +27,7 @@ object HomeRoutes {
     const val PROFILE = "account/profile"
     const val SETTINGS = "account/settings"
     const val ORDERS = "account/orders"
+    const val CART = "cart"
 
     // Direcciones
     const val ADDRESSES = "account/addresses"
