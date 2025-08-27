@@ -42,6 +42,8 @@ interface AuthRepository {
 
     /** Envía un correo de verificación al usuario actual (si lo permite el backend). */
     suspend fun requestEmailVerification()
+
+    /** Métodos de inicio de sesión disponibles para un email (vacío si no existe). */
 }
 
 

@@ -3,7 +3,6 @@ package com.sergiom.thebestdamkebap.data.address
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import com.sergiom.thebestdamkebap.di.ApplicationScope
 import com.sergiom.thebestdamkebap.domain.address.AddressRepository
@@ -85,13 +84,17 @@ class FirebaseAddressRepository @Inject constructor(
      * - Si [aid] tiene valor ⇒ upsert sobre ese documento.
      */
     override suspend fun upsertAddress(uid: String, aid: String?, input: DomainAddressInput): String {
+        if (aid.isNullOrBlank()) {
+            // creación: teléfono debe venir informado
+            require(!input.phone.isNullOrBlank()) { "Teléfono obligatorio" }
+        }
+
         val ref = if (aid.isNullOrBlank()) addrCol(uid).document() else addrCol(uid).document(aid)
 
-        // ⚠️ Tipos explícitos: mezcla String/Double/FieldValue ⇒ Any?
         val data = buildMap<String, Any?> {
             input.label?.let { put("label", it) }
             input.recipientName?.let { put("recipientName", it) }
-            input.phone?.let { put("phone", it) }
+            input.phone?.let { put("phone", it) }                    // ← siempre presente en create
             input.street?.let { put("street", it) }
             input.number?.let { put("number", it) }
             input.floorDoor?.let { put("floorDoor", it) }
@@ -105,7 +108,7 @@ class FirebaseAddressRepository @Inject constructor(
             if (aid.isNullOrBlank()) put("createdAt", FieldValue.serverTimestamp())
         }
 
-        ref.set(data, SetOptions.merge()).await()
+        ref.set(data, com.google.firebase.firestore.SetOptions.merge()).await()
         return ref.id
     }
 
@@ -138,14 +141,34 @@ class FirebaseAddressRepository @Inject constructor(
         db.runTransaction { tx ->
             val addrSnap = tx.get(addrRef)
             if (!addrSnap.exists()) throw IllegalArgumentException("La dirección no existe")
-            tx.set(
-                userRef,
-                mapOf(
-                    "defaultAddressId" to aid,
-                    "updatedAt" to FieldValue.serverTimestamp()
-                ),
-                SetOptions.merge()
-            )
+
+            val userSnap = tx.get(userRef)
+            if (!userSnap.exists()) {
+                // CREATE: cumplir reglas de create en /users/{uid}
+                tx.set(
+                    userRef,
+                    mapOf(
+                        "uid" to uid,
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                        "defaultAddressId" to aid
+                    )
+                )
+            } else {
+                // UPDATE: fast-path de tus reglas (defaultAddressId + updatedAt)
+                tx.update(
+                    userRef,
+                    mapOf(
+                        "defaultAddressId" to aid,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                )
+            }
         }.await()
+    }
+
+    override suspend fun addressExists(uid: String, aid: String): Boolean {
+        val snap = addrCol(uid).document(aid).get().await()
+        return snap.exists()
     }
 }

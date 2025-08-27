@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
     implementation(libs.coil.gif)
+    implementation(libs.firebase.functions)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)

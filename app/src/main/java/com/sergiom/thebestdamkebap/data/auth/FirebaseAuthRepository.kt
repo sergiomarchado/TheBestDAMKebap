@@ -100,6 +100,7 @@ class FirebaseAuthRepository @Inject constructor(
     override suspend fun requestEmailVerification() {
         auth.currentUser?.sendEmailVerification()?.await()
     }
+
 }
 
 /* ======================= Mapper Firebase → Dominio ======================= */

@@ -79,4 +79,6 @@ interface AddressRepository {
      * - No modifica otras direcciones; solo actualiza el campo del documento de usuario.
      */
     suspend fun setDefaultAddress(uid: String, aid: String)
+
+    suspend fun addressExists(uid: String, aid: String): Boolean
 }

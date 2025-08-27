@@ -125,7 +125,9 @@ fun AddressEditScreen(
                     value = f.phone,
                     onValueChange = { vm.edit { copy(phone = it) } },
                     label = { Text("Teléfono") },
-                    supportingText = { Text(f.ePhone ?: "Opcional") },
+                    supportingText = {
+                        Text(f.ePhone ?: "Obligatorio: 9 dígitos (España). Admite prefijo +34/34.")
+                    },
                     isError = f.ePhone != null,
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(

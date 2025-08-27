@@ -9,10 +9,11 @@ class ValidateAddressInputUseCase {
         val postalCode: String? = null,
         val phone: String? = null,
     )
+
     data class Sanitized(
         val label: String?,
         val recipientName: String?,
-        val phoneNormalized: String?,
+        val phoneNormalized: String?,  // ^\+?[0-9]{9,15}$
         val street: String,
         val number: String,
         val floorDoor: String?,
@@ -21,12 +22,13 @@ class ValidateAddressInputUseCase {
         val postalCode: String,
         val notes: String?
     )
+
     data class Result(val valid: Boolean, val errors: Errors, val sanitized: Sanitized)
 
     operator fun invoke(
         label: String?,
         recipientName: String?,
-        phone: String?,
+        phone: String?,          // ← ahora OBLIGATORIO
         street: String?,
         number: String?,
         floorDoor: String?,
@@ -35,31 +37,72 @@ class ValidateAddressInputUseCase {
         postalCode: String?,
         notes: String?
     ): Result {
+        fun clean(s: String?) = s?.trim()?.takeIf { it.isNotEmpty() }
+
+        val phoneNorm = normalizePhone(phone)
+
         val e = Errors(
-            street = if (street.isNullOrBlank()) "Calle obligatoria" else null,
-            number = if (number.isNullOrBlank()) "Número obligatorio" else null,
-            city = if (city.isNullOrBlank()) "Ciudad obligatoria" else null,
-            postalCode = when {
-                postalCode.isNullOrBlank() -> "CP obligatorio"
-                !postalCode.matches(Regex("""\d{5}""")) -> "CP inválido (5 dígitos)"
+            street = when {
+                street.isNullOrBlank() -> "Calle obligatoria"
+                street.length > 120     -> "Máx. 120 caracteres"
                 else -> null
             },
-            phone = if (!phone.isNullOrBlank() && phone.filter { it.isDigit() }.length != 9)
-                "Teléfono inválido (9 dígitos)" else null
+            number = when {
+                number.isNullOrBlank() -> "Número obligatorio"
+                number.length > 10      -> "Máx. 10 caracteres"
+                else -> null
+            },
+            city = when {
+                city.isNullOrBlank() -> "Ciudad obligatoria"
+                city.length > 80     -> "Máx. 80 caracteres"
+                else -> null
+            },
+            postalCode = when {
+                postalCode.isNullOrBlank() -> "CP obligatorio"
+                !postalCode.matches(Regex("""^\d{5}$""")) -> "CP inválido (5 dígitos)"
+                else -> null
+            },
+            phone = when {
+                phoneNorm == null -> "Teléfono obligatorio"
+                !phoneNorm.matches(Regex("""^\+?[0-9]{9,15}$""")) ->
+                    "Teléfono inválido (9–15 dígitos, opcional +)"
+                else -> null
+            }
         )
+
         val valid = listOf(e.street, e.number, e.city, e.postalCode, e.phone).all { it == null }
+
         val sanitized = Sanitized(
-            label = label?.trim()?.takeIf { it.isNotEmpty() },
-            recipientName = recipientName?.trim()?.takeIf { it.isNotEmpty() },
-            phoneNormalized = phone?.filter { it.isDigit() }?.takeIf { it.isNotEmpty() },
-            street = street?.trim().orEmpty(),
-            number = number?.trim().orEmpty(),
-            floorDoor = floorDoor?.trim()?.takeIf { it.isNotEmpty() },
-            city = city?.trim().orEmpty(),
-            province = province?.trim()?.takeIf { it.isNotEmpty() },
-            postalCode = postalCode?.trim().orEmpty(),
-            notes = notes?.trim()?.takeIf { it.isNotEmpty() }
+            label = clean(label),
+            recipientName = clean(recipientName),
+            phoneNormalized = phoneNorm,
+            street = clean(street) ?: "",
+            number = clean(number) ?: "",
+            floorDoor = clean(floorDoor),
+            city = clean(city) ?: "",
+            province = clean(province),
+            postalCode = clean(postalCode) ?: "",
+            notes = clean(notes)
         )
+
         return Result(valid, e, sanitized)
+    }
+
+    /**
+     * Normaliza el teléfono:
+     * - Recorta espacios.
+     * - Conserva el '+' inicial si estaba presente.
+     * - El resto solo dígitos.
+     * - Si queda vacío, devuelve null.
+     *
+     * Válido contra las reglas: ^\+?[0-9]{9,15}$
+     */
+    private fun normalizePhone(raw: String?): String? {
+        val s = raw?.trim() ?: return null
+        if (s.isEmpty()) return null
+        val hasPlus = s.startsWith("+")
+        val digits = s.filter { it.isDigit() }
+        if (digits.isEmpty()) return null
+        return if (hasPlus) "+$digits" else digits
     }
 }

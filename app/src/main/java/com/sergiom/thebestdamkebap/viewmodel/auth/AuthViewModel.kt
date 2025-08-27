@@ -231,4 +231,8 @@ class AuthViewModel @Inject constructor(
         is FirebaseAuthException    -> "FirebaseAuthException ${errorCode}: ${message.orEmpty()}"
         else -> this.message
     }
+
+    fun continueAsGuest() = signInAnonymouslyIfNeeded()
+    fun isCurrentUserAnonymous(): Boolean = user.value?.isAnonymous == true
+
 }

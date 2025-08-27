@@ -16,74 +16,53 @@ import dagger.hilt.android.HiltAndroidApp
  * Application raíz de la app.
  *
  * Responsabilidades:
- * - Inicializar Hilt (DI) mediante la anotación [HiltAndroidApp].
- * - Inicializar Firebase (idempotente) lo antes posible, para que los SDKs
- *   que se apoyan en él (Auth, Firestore, Analytics) estén listos.
- * - Configurar **Firebase App Check**:
- *   * En **debug** usa [DebugAppCheckProviderFactory] (permite ejecutar la app
- *     fuera de Google Play; si activas enforcement en consola, tendrás que registrar
- *     el *debug token* que se muestra en logs).
- *   * En **release** usa [PlayIntegrityAppCheckProviderFactory] (requiere distribución
- *     por Google Play para emitir tokens válidos).
+ * - Inicializar Hilt (DI) mediante [HiltAndroidApp].
+ * - Inicializar Firebase lo antes posible (idempotente).
+ * - Configurar Firebase App Check:
+ *   - En build *debug*: [DebugAppCheckProviderFactory] (permite ejecutar fuera de Play).
+ *   - En build *release*: [PlayIntegrityAppCheckProviderFactory] (tokens válidos vía Play).
  *
- * Decisiones:
- * - Detección de debug sin `BuildConfig`: leemos `ApplicationInfo.FLAG_DEBUGGABLE`.
- *   Esto evita depender de la generación de BuildConfig y funciona igual.
- * - No se capturan excepciones aquí: si App Check no puede instalarse, preferimos
- *   que falle visible en desarrollo para detectarlo pronto.
- *
- * Requisitos previos / comprobaciones rápidas:
- * - Manifest: declarar `android:name=".TheBestDamKebapApp"` en `<application>`.
- * - Google Services: tener `google-services.json` del proyecto correcto (appId/sha) y
- *   aplicar el plugin `com.google.gms.google-services`.
- * - Dependencias: usar BoM de Firebase y añadir los módulos de App Check (debug/playintegrity).
- * - Consola Firebase: habilitar **App Check** por servicio (Firestore/Storage/RTDB/Functions)
- *   y, en debug, registrar el **debug token** si activas enforcement.
- *
- * Compatibilidad/entorno:
- * - `PlayIntegrity` requiere dispositivos con Google Play Services y distribución por Play;
- *   en emuladores o tiendas sin Play no habrá token válido (con enforcement activo, se bloquearán
- *   las peticiones).
- * - App Check no “rompe” en sí mismo: el fallo se manifiesta cuando el backend con enforcement
- *   **rechaza** la solicitud; útil para probar rutas de error.
+ * Notas:
+ * - La detección de build *debug* usa `ApplicationInfo.FLAG_DEBUGGABLE` para evitar
+ *   depender de `BuildConfig`.
+ * - No capturamos excepciones aquí: preferimos fallar ruidoso en desarrollo.
+ * - Implementa [ImageLoaderFactory] para proporcionar el `ImageLoader` global de Coil v2.
  */
 @HiltAndroidApp
 class TheBestDamKebapApp : Application(), ImageLoaderFactory {
 
-    private var isDebugBuild: Boolean = false
+    // Evaluado on-demand; disponible tanto en onCreate() como en newImageLoader().
+    private val isDebugBuild: Boolean by lazy {
+        (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }
+
     override fun onCreate() {
         super.onCreate()
-        // Detectar "debuggeable"
-        isDebugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-        // Inicializa Firebase. Es seguro llamarlo aunque ya esté auto-inicializado:
-        // FirebaseApp.initializeApp(...) es idempotente.
+        // Inicializa Firebase (seguro aunque ya esté auto-inicializado por los servicios).
         FirebaseApp.initializeApp(this)
 
-
-        // Selecciona el proveedor de App Check según el tipo de build:
+        // Selecciona el proveedor de App Check según el tipo de build.
         val factory = if (isDebugBuild) {
             DebugAppCheckProviderFactory.getInstance()
         } else {
             PlayIntegrityAppCheckProviderFactory.getInstance()
         }
 
-        // Registra la factory en Firebase App Check. A partir de aquí, los SDKs de Firebase
-        // pedirán y adjuntarán tokens de App Check automáticamente en sus peticiones.
-        val appCheck = FirebaseAppCheck.getInstance()
-        appCheck.installAppCheckProviderFactory(factory)
-
+        // Registra la factory en Firebase App Check: los SDKs adjuntarán tokens automáticamente.
+        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(factory)
     }
 
-    // Coil v2
+    // Coil v2: ImageLoader global para toda la app.
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
+            // Si tus URLs llevan versión/firmas (p. ej., de Firebase Storage), puedes ignorar headers.
             .respectCacheHeaders(false)
             .crossfade(true)
             .apply { if (isDebugBuild) logger(DebugLogger()) }
             .build()
 
-    // Limpia tu caché de URLs cuando la UI se va al fondo
+    // Limpia la caché de URLs cuando la UI pasa a background.
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_UI_HIDDEN) {
@@ -91,7 +70,7 @@ class TheBestDamKebapApp : Application(), ImageLoaderFactory {
         }
     }
 
-    // Limpia tu caché de URLs en memoria baja
+    // Limpia la caché de URLs en memoria baja.
     override fun onLowMemory() {
         super.onLowMemory()
         StorageUrlMemoryCache.clear()

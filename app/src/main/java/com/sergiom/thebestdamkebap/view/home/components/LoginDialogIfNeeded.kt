@@ -22,25 +22,14 @@ import androidx.compose.ui.unit.dp
 /**
  * Diálogo reutilizable de **inicio de sesión**.
  *
- * Qué hace:
- * - Se muestra sólo cuando [show] es `true`.
- * - Mantiene estado local del formulario (email/contraseña/mostrar contraseña).
- * - Valida mínimamente y delega acciones en callbacks de la pantalla padre.
- *
- * Notas:
- * - Los textos visibles deberían ir a `strings.xml` para i18n.
- * - El botón de “He olvidado…” sólo se habilita si el email es válido.
- *
- * Callbacks:
- * - [onDismiss]     → cerrar el diálogo.
- * - [onConfirm]     → intentar login con (email, password).
- * - [onForgot]      → solicitar reset de contraseña con el email actual.
- * - [onGoRegister]  → navegar al registro (el diálogo se cierra antes).
+ * - Si [isGuest] es `true`, al confirmar muestra un aviso de que se reemplazará
+ *   la sesión de invitado antes de llamar a [onConfirm].
  */
 @Composable
 fun LoginDialogIfNeeded(
     show: Boolean,
     loading: Boolean,
+    isGuest: Boolean,                     // ⬅️ NUEVO
     onDismiss: () -> Unit,
     onConfirm: (email: String, password: String) -> Unit,
     onForgot: (email: String) -> Unit,
@@ -48,37 +37,46 @@ fun LoginDialogIfNeeded(
 ) {
     if (!show) return
 
-    // Estado local del formulario (sobrevive rotaciones si es posible).
+    // Estado local del formulario
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var showPass by rememberSaveable { mutableStateOf(false) }
 
-    // Validación sencilla en cliente (no sustituye la del ViewModel/servidor).
+    // Confirmación para reemplazar sesión invitado
+    var showReplaceAnonDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Validación cliente
     val emailError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val passError  = password.isNotBlank() && password.length < 6
     val formInvalid = email.isBlank() || password.isBlank() || emailError || passError
 
     val focus = LocalFocusManager.current
 
+    // Acción centralizada de login (con confirmación si es invitado)
+    fun tryLogin() {
+        if (formInvalid || loading) return
+        val e = email.trim()
+        val p = password
+        if (isGuest) {
+            showReplaceAnonDialog = true
+        } else {
+            onConfirm(e, p)
+        }
+    }
+
     AlertDialog(
-        // Evita cerrar durante una operación en curso.
         onDismissRequest = { if (!loading) onDismiss() },
-
         title = { Text("Iniciar sesión") },
-
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-                // Email
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
                     singleLine = true,
                     isError = emailError,
-                    supportingText = {
-                        if (emailError) Text("Introduce un email válido")
-                    },
+                    supportingText = { if (emailError) Text("Introduce un email válido") },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
@@ -87,19 +85,15 @@ fun LoginDialogIfNeeded(
                     shape = MaterialTheme.shapes.large
                 )
 
-                // Contraseña
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Contraseña") },
                     singleLine = true,
                     isError = passError,
-                    supportingText = {
-                        if (passError) Text("Mínimo 6 caracteres")
-                    },
+                    supportingText = { if (passError) Text("Mínimo 6 caracteres") },
                     visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        // IconButton accesible para mostrar/ocultar contraseña
                         IconButton(onClick = { showPass = !showPass }) {
                             val desc = if (showPass) "Ocultar contraseña" else "Mostrar contraseña"
                             Icon(
@@ -114,60 +108,44 @@ fun LoginDialogIfNeeded(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            if (!formInvalid && !loading) {
-                                focus.clearFocus()
-                                onConfirm(email.trim(), password)
-                            }
+                            focus.clearFocus()
+                            tryLogin()
                         }
                     ),
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large
                 )
 
-                // “He olvidado mi contraseña”
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
                         onClick = { onForgot(email.trim()) },
-                        // Sólo si hay email válido (evita errores innecesarios).
                         enabled = email.isNotBlank() && !emailError && !loading
                     ) { Text("¿Olvidaste la contraseña?") }
                 }
             }
         },
-
-        // Botón principal (Login)
         confirmButton = {
             Button(
                 onClick = {
                     focus.clearFocus()
-                    onConfirm(email.trim(), password)
+                    tryLogin()
                 },
                 enabled = !formInvalid && !loading
             ) {
                 if (loading) {
-                    // Indicador compacto para evitar “bailes” de layout
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
                     Text("Iniciar sesión")
                 }
             }
         },
-
-        // Acciones secundarias: Cancelar + Crear cuenta
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(
-                    onClick = { if (!loading) onDismiss() }
-                ) { Text("Cancelar") }
-
+                TextButton(onClick = { if (!loading) onDismiss() }) { Text("Cancelar") }
                 Spacer(Modifier.width(4.dp))
-
                 FilledTonalButton(
                     onClick = {
                         onDismiss()
@@ -178,4 +156,28 @@ fun LoginDialogIfNeeded(
             }
         }
     )
+
+    // Diálogo de confirmación si es invitado
+    if (showReplaceAnonDialog) {
+        AlertDialog(
+            onDismissRequest = { showReplaceAnonDialog = false },
+            title = { Text("Cambiar de invitado a cuenta existente") },
+            text = {
+                Text(
+                    "Vas a iniciar sesión con una cuenta.\n\n" +
+                            "La sesión de invitado se reemplazará y los datos creados como invitado " +
+                            "no se migrarán automáticamente."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showReplaceAnonDialog = false
+                    onConfirm(email.trim(), password)
+                }) { Text("Continuar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReplaceAnonDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
 }

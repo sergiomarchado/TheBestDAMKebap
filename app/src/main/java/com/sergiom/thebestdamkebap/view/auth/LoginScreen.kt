@@ -33,35 +33,12 @@ import kotlinx.coroutines.launch
 
 /**
  * Pantalla de inicio de sesión.
- *
- * Qué hace:
- * - Muestra el formulario de acceso (email y contraseña) y permite alternar la visibilidad de la contraseña.
- * - Escucha el estado del [AuthViewModel]; cuando hay usuario, avisa con [onAuthenticated].
- * - Presenta avisos de una sola vez (snackbars) según los [AuthEvent] del ViewModel.
- * - Ofrece “recordar email” con [UserPrefs] para una experiencia más cómoda.
- *
- * Detalles de diseño:
- * - Usa `Scaffold` con `SnackbarHost` para mostrar mensajes sin interrumpir.
- * - Añade `imePadding()` para que el teclado no tape los campos en pantallas pequeñas.
- * - El contenido es desplazable para asegurar accesibilidad en dispositivos compactos.
- *
- * Accesibilidad:
- * - El título principal se marca como encabezado para lectores de pantalla.
- *
- * Navegación:
- * - Esta pantalla no navega por sí misma. Llama a [onAuthenticated] y la navegación
- *   se gestiona en el grafo superior (por ejemplo, limpiando el back stack en Splash).
- *
- * Parámetros:
- * @param onAuthenticated Acción cuando ya hay sesión (invitado o usuario verificado).
- * @param onGoToRegister Abre el registro.
- * @param logoRes Recurso de imagen opcional para la cabecera.
- * @param viewModel ViewModel inyectado con Hilt.
  */
 @Composable
 fun LoginScreen(
     onAuthenticated: () -> Unit = {},
     onGoToRegister: () -> Unit = {},
+    onContinueAsGuest: () -> Unit = {},
     @DrawableRes logoRes: Int? = null,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -69,52 +46,62 @@ fun LoginScreen(
     val shapes = MaterialTheme.shapes
     val focus = LocalFocusManager.current
 
-    /// Estado del VM (sensibles al ciclo de vida)
+    // Estado del VM
     val user    by viewModel.user.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
 
-    // Estado del formulario (se conserva en rotación y en proceso)
+    // Estado del formulario
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var rememberMe by rememberSaveable { mutableStateOf(false) }
 
-    // Host de snackbars para eventos efímeros.
+    // Snackbar + scope
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // Reglas de habilitación del botón de login.
+    // Diálogo para reemplazar sesión invitado
+    var showReplaceAnonDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingEmail by rememberSaveable { mutableStateOf("") }
+    var pendingPassword by rememberSaveable { mutableStateOf("") }
+
     val canSubmit = email.isNotBlank() && password.isNotBlank() && !loading
+    val isAnon = user?.isAnonymous == true
 
-    // Si ya hay usuario (por ejemplo, tras login/registro), navega fuera de login.
+    // Si ya hay usuario, navega fuera
     LaunchedEffect(user?.id) { if (user != null) onAuthenticated() }
 
-    // Colecta de eventos efímeros del VM → snackbars one-shot (sin reemitir tras recomposición).
+    // Eventos del VM → snackbars
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
                 is AuthEvent.Error -> snackbarHostState.showSnackbar(ev.text)
                 is AuthEvent.Info  -> snackbarHostState.showSnackbar(ev.text)
-                AuthEvent.RegisterSuccess -> Unit      // Ignorar en Login
-                AuthEvent.NavigateToLogin -> Unit      // Ya estamos en Login
+                AuthEvent.RegisterSuccess -> Unit
+                AuthEvent.NavigateToLogin -> Unit
             }
         }
     }
 
-    // Preferencias/DataStore (recordar email).
+    // Preferencias (recordar email)
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val remembered by remember { UserPrefs.rememberEmailFlow(context) }.collectAsState(initial = false)
     val savedEmail by remember { UserPrefs.savedEmailFlow(context) }.collectAsState(initial = "")
 
-    // Sincroniza el check con el valor almacenado.
     LaunchedEffect(remembered) { rememberMe = remembered }
 
-    // Carga el email guardado una sola vez cuando `remembered` es true.
     var loadedEmail by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(remembered, savedEmail) {
         if (remembered && !loadedEmail) {
             email = savedEmail
             loadedEmail = true
+        }
+    }
+
+    fun doLoginNow(e: String, p: String) {
+        scope.launch {
+            if (rememberMe) UserPrefs.setSavedEmail(context, e) else UserPrefs.clearSavedEmail(context)
+            viewModel.signInWithEmail(e, p)
         }
     }
 
@@ -126,17 +113,15 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .imePadding()     // Evita que el teclado tape los campos de texto.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(36.dp))
 
-            // Cabecera de branding
             AuthLogo(logoRes, shapes)
 
-            // Título (accesible como encabezado)
             Text(
                 text = "¡Bienvenid@! Inicia sesión y disfruta del sabor mejor desarrollado...",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -147,7 +132,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(18.dp))
 
-            // Campo email
             EmailField(
                 value = email,
                 onValueChange = { email = it },
@@ -156,7 +140,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Campo contraseña
             PasswordField(
                 value = password,
                 onValueChange = { password = it },
@@ -164,15 +147,20 @@ fun LoginScreen(
                 onToggleVisible = { passwordVisible = !passwordVisible },
                 enabled = !loading,
                 onDone = {
-                    // Enviar con IME action (Done): cierra teclado y lanza login.
                     focus.clearFocus()
-                    viewModel.signInWithEmail(email.trim(), password)
+                    if (!canSubmit) return@PasswordField
+                    if (isAnon) {
+                        pendingEmail = email.trim()
+                        pendingPassword = password
+                        showReplaceAnonDialog = true
+                    } else {
+                        doLoginNow(email.trim(), password)
+                    }
                 }
             )
 
             Spacer(Modifier.height(10.dp))
 
-            // "Recordar email" (persistencia en DataStore)
             RememberEmailRow(
                 checked = rememberMe,
                 onToggle = { checked ->
@@ -188,8 +176,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(8.dp))
 
-
-            // "He olvidado mi contraseña"
             ForgotPasswordRow(
                 onClick = { viewModel.sendPasswordReset(email) },
                 enabled = !loading
@@ -197,16 +183,18 @@ fun LoginScreen(
 
             Spacer(Modifier.height(18.dp))
 
-            // Botones de acción (Login / Register)
             AuthButtonsRow(
                 loading = loading,
                 enabledLogin = canSubmit,
                 onLogin = {
                     if (!loading && canSubmit) {
-                        scope.launch {
-                            if (rememberMe) UserPrefs.setSavedEmail(context, email.trim())
-                            else UserPrefs.clearSavedEmail(context)
-                            viewModel.signInWithEmail(email.trim(), password)
+                        focus.clearFocus()
+                        if (isAnon) {
+                            pendingEmail = email.trim()
+                            pendingPassword = password
+                            showReplaceAnonDialog = true
+                        } else {
+                            doLoginNow(email.trim(), password)
                         }
                     }
                 },
@@ -215,13 +203,36 @@ fun LoginScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // Acceso como invitado (crea sesión anónima si no existe)
             GuestAccess(
-                onClick = { viewModel.signInAnonymouslyIfNeeded() },
+                onClick = onContinueAsGuest,
                 enabled = !loading
             )
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    // Confirmación: reemplazar sesión invitado
+    if (showReplaceAnonDialog) {
+        AlertDialog(
+            onDismissRequest = { showReplaceAnonDialog = false },
+            title = { Text("Cambiar de invitado a cuenta existente") },
+            text = {
+                Text(
+                    "Vas a iniciar sesión con una cuenta.\n\n" +
+                            "La sesión de invitado se reemplazará y los datos creados como invitado " +
+                            "no se migrarán automáticamente."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showReplaceAnonDialog = false
+                    doLoginNow(pendingEmail, pendingPassword)
+                }) { Text("Continuar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReplaceAnonDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 }

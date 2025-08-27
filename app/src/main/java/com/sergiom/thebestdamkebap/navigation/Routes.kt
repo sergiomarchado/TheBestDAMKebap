@@ -7,13 +7,6 @@ package com.sergiom.thebestdamkebap.navigation
  * - [Graph]: subgrafos raíz (agrupan pantallas relacionadas).
  * - [Standalone]: pantallas únicas fuera de subgrafos (ej. Splash).
  * - `*Destinations`: destinos hoja dentro de cada grafo.
- *
- * Ejemplos de uso:
- * ```
- * navController.navigate(Graph.AUTH)
- * navController.navigate(AuthDestinations.LOGIN)
- * ```
- *
  */
 object Graph {
     const val AUTH = "auth"
@@ -31,6 +24,4 @@ object AuthDestinations {
 
 object HomeDestinations {
     const val HOME_MAIN = "home/main"
-
 }
-

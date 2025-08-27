@@ -83,7 +83,7 @@ class AddressEditViewModel @Inject constructor(
         bootstrapped = true
 
         val du = currentUser.value
-        if (du == null || du.isAnonymous) {
+        if (du == null) {
             _ui.value = UiState(loading = false, isGuest = true, aid = aid)
             return
         }

@@ -48,7 +48,7 @@ class AddressListViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             authRepo.currentUser.collectLatest { du ->
-                if (du == null || du.isAnonymous) {
+                if (du == null) {
                     currentUid = null
                     _ui.value = UiState(loading = false, isGuest = true)
                     return@collectLatest
