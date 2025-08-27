@@ -1,5 +1,6 @@
 package com.sergiom.thebestdamkebap.view.cart.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,21 +10,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddLocationAlt
-import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.DeliveryDining
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 
@@ -41,7 +45,7 @@ internal fun ConfirmShippingDialog(
     addressId: String?,                    // id actual (si hay)
     addressLabel: String?,                 // etiqueta bonita (si la has resuelto)
     onDismiss: () -> Unit,
-    onPickMode: (OrderMode) -> Unit,       // ⬅️ nuevo: fijar modo en VM
+    onPickMode: (OrderMode) -> Unit,       // fija modo en VM
     onAddAddress: () -> Unit,              // navegar a crear/seleccionar
     onChangeAddress: () -> Unit,           // navegar a gestionar
     onProceed: () -> Unit                  // abrir el diálogo de pago
@@ -49,48 +53,56 @@ internal fun ConfirmShippingDialog(
     // estado local para feedback inmediato
     var selected by remember(currentMode) { mutableStateOf(currentMode) }
 
+    // Colores de los SegmentedButton (seleccionado = primary)
+    val segColors = SegmentedButtonDefaults.colors(
+        activeContainerColor = MaterialTheme.colorScheme.primary,
+        activeContentColor   = MaterialTheme.colorScheme.onPrimary,
+        inactiveContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
+        inactiveContentColor   = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Confirmar tu pedido") },
+        title = { Text(text = "Confirmar tu pedido", color = MaterialTheme.colorScheme.primary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
                 Text(
-                    "Elige cómo completar tu pedido y revisa la dirección si es envío a domicilio.",
+                    "Elige cómo completar tu pedido y revisa la dirección de entrega (si es envío a domicilio).",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 /* ── Selector modo: Recogida vs Envío ── */
-                SingleChoiceSegmentedButtonRow {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = selected == OrderMode.PICKUP,
                         onClick = {
                             selected = OrderMode.PICKUP
-                            onPickMode(OrderMode.PICKUP)   // ⬅️ fija en la sesión (limpia address)
+                            onPickMode(OrderMode.PICKUP)
                         },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Store, // requiere material-icons-extended
-                                contentDescription = null
-                            )
-                        },
-                        label = { Text("Recogida") }
+                        shape  = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        colors = segColors,
+                        icon   = { Icon(Icons.Outlined.Store, contentDescription = null) },
+                        label  = { Text("Recogida") }
                     )
                     SegmentedButton(
                         selected = selected == OrderMode.DELIVERY,
                         onClick = {
                             selected = OrderMode.DELIVERY
-                            onPickMode(OrderMode.DELIVERY) // ⬅️ fija en la sesión (mantiene address si había)
+                            onPickMode(OrderMode.DELIVERY)
                         },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        icon = {
+                        shape  = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        colors = segColors,
+                        // aire extra para el icono respecto al separador central
+                        icon   = {
                             Icon(
-                                imageVector = Icons.Outlined.LocalShipping,
-                                contentDescription = null
+                                Icons.Outlined.DeliveryDining,
+                                contentDescription = null,
+                                modifier = Modifier.padding(start = 6.dp)
                             )
                         },
-                        label = { Text("Envío a domicilio") }
+                        label  = { Text("Envío a domicilio") }
                     )
                 }
 
@@ -98,22 +110,28 @@ internal fun ConfirmShippingDialog(
                 if (selected == OrderMode.DELIVERY) {
                     if (addressId.isNullOrBlank()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "No tienes una dirección seleccionada.",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Text("No tienes una dirección seleccionada.", style = MaterialTheme.typography.bodyMedium)
                             AssistChip(
                                 onClick = onAddAddress,
                                 label = { Text("Añadir dirección") },
-                                leadingIcon = {
-                                    Icon(Icons.Outlined.AddLocationAlt, contentDescription = null)
-                                }
+                                leadingIcon = { Icon(Icons.Outlined.AddLocationAlt, contentDescription = null) }
                             )
                         }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Se entregará en:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            ElevatedCard {
+                            Text(
+                                "Se entregará en:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            val cardShape = MaterialTheme.shapes.large
+                            OutlinedCard(
+                                shape = cardShape,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                colors = CardDefaults.outlinedCardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+                                )
+                            ) {
                                 Row(
                                     Modifier
                                         .fillMaxWidth()
@@ -125,7 +143,9 @@ internal fun ConfirmShippingDialog(
                                     Text(
                                         addressLabel ?: "Cargando dirección...",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     TextButton(onClick = onChangeAddress) { Text("Cambiar") }
                                 }
@@ -141,15 +161,17 @@ internal fun ConfirmShippingDialog(
                 OrderMode.DELIVERY -> !addressId.isNullOrBlank()
                 null               -> false
             }
-            Button(
-                enabled = canProceed,
-                onClick = onProceed
-            ) { Text("Continuar") }
+            val confirmIcon = when (selected) {
+                OrderMode.PICKUP   -> Icons.Outlined.Store
+                OrderMode.DELIVERY -> Icons.Outlined.DeliveryDining
+                null               -> null
+            }
+            Button(enabled = canProceed, onClick = onProceed) {
+                confirmIcon?.let { Icon(it, contentDescription = null) }
+                if (confirmIcon != null) Spacer(Modifier.width(8.dp))
+                Text("Continuar")
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cerrar") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } }
     )
 }
-
-

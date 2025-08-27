@@ -1,18 +1,24 @@
 // view/home/products/ProfileScreen.kt
 package com.sergiom.thebestdamkebap.view.profile
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,21 +27,19 @@ import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Extras de estilo/layout
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.surfaceColorAtElevation
+
 /**
  * ProfileScreen
  *
  * Pantalla de **Mi perfil**.
- *
- * Qué hace:
- * - Conecta con [ProfileViewModel] para leer el estado (perfil, email, errores de formulario).
- * - Muestra un formulario sencillo (nombre, apellidos, teléfono y fecha de nacimiento).
- * - Gestiona mensajes efímeros (snackbars) y el selector de fecha.
- *
- * Notas:
- * - Si el usuario es invitado (o no hay sesión) se muestra un placeholder invitando a iniciar sesión.
- * - Los textos visibles deberían migrarse a `strings.xml` cuando cierres la UI.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
@@ -46,7 +50,7 @@ fun ProfileScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
-    // Recoge eventos efímeros (Info/Error) y muéstralos como snackbars una sola vez
+    // Eventos efímeros → snackbars
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { ev ->
             when (ev) {
@@ -56,7 +60,7 @@ fun ProfileScreen(
         }
     }
 
-    // Invitado: no hay perfil editable (salida temprana)
+    // Invitado: placeholder
     if (ui.isGuest) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Inicia sesión para editar tu perfil")
@@ -64,17 +68,16 @@ fun ProfileScreen(
         return
     }
 
-    // Alias de conveniencia para leer el form y flags del UI state
+    // Aliases
     val loading = ui.loading
     val f = ui.form
     val emailReadOnly = ui.email
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // DatePicker (estado local de la pantalla)
+    // DatePicker (estado local)
     // ─────────────────────────────────────────────────────────────────────────────
     var showDateDialog by rememberSaveable { mutableStateOf(false) }
 
-    // Solo fechas pasadas (la fecha no puede ser futura)
     val selectablePastDates = remember {
         object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long) =
@@ -82,40 +85,57 @@ fun ProfileScreen(
         }
     }
 
-    // Estado del DatePicker; si no hay valor, por defecto 18 años atrás
     val dateState = rememberDatePickerState(
         initialSelectedDateMillis = f.birthDateMillis ?: yearsAgo(18),
         selectableDates = selectablePastDates
     )
 
-    // Formateador ligero para mostrar la fecha en el TextField
     val dateFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val birthStr = remember(f.birthDateMillis) {
         f.birthDateMillis?.let { dateFmt.format(Date(it)) }.orEmpty()
     }
 
+    // Colores reutilizables para OutlinedTextField (solo UI)
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        cursorColor = MaterialTheme.colorScheme.primary
+    )
+
     // ─────────────────────────────────────────────────────────────────────────────
     // UI principal
     // ─────────────────────────────────────────────────────────────────────────────
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbar) }
-    ) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbar) }) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Mi perfil", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                text = "Mi perfil",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+            )
 
             // Tarjeta con el formulario
+            val cardShape = MaterialTheme.shapes.extraLarge
             ElevatedCard(
-                shape = MaterialTheme.shapes.extraLarge,
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+                shape = cardShape,
+                modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, cardShape),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 3.dp)
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
 
                     // Email (solo lectura, fuente de verdad es Auth)
                     OutlinedTextField(
@@ -126,8 +146,10 @@ fun ProfileScreen(
                         readOnly = true,
                         enabled = true,
                         supportingText = { Text("Este es tu email de acceso. No se puede cambiar desde la app.") },
+                        leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.large,
+                        colors = fieldColors
                     )
 
                     // Nombre
@@ -139,8 +161,10 @@ fun ProfileScreen(
                         isError = f.eGivenName != null,
                         supportingText = { f.eGivenName?.let { Text(it) } },
                         enabled = !loading,
+                        leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.large,
+                        colors = fieldColors
                     )
 
                     // Apellidos
@@ -152,8 +176,10 @@ fun ProfileScreen(
                         isError = f.eFamilyName != null,
                         supportingText = { f.eFamilyName?.let { Text(it) } },
                         enabled = !loading,
+                        leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.large,
+                        colors = fieldColors
                     )
 
                     // Teléfono (opcional). Validación básica en el VM.
@@ -166,11 +192,13 @@ fun ProfileScreen(
                         supportingText = { Text(f.ePhone ?: "Opcional") },
                         enabled = !loading,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        leadingIcon = { Icon(Icons.Outlined.Phone, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.large,
+                        colors = fieldColors
                     )
 
-                    // Fecha de nacimiento (opcional) + botón para abrir el DatePicker
+                    // Fecha de nacimiento (opcional)
                     OutlinedTextField(
                         value = birthStr,
                         onValueChange = {},
@@ -180,25 +208,23 @@ fun ProfileScreen(
                         isError = f.eBirthDate != null,
                         supportingText = {
                             if (f.eBirthDate != null) Text(f.eBirthDate)
-                            else Text("Opcional. ¡Nos encantará felicitarte! 🥳")
+                            else Text("Opcional. ¡Nos encantará felicitarte a nuestra manera! 😜🥳")
                         },
                         trailingIcon = {
                             IconButton(onClick = { showDateDialog = true }) {
-                                Icon(
-                                    Icons.Outlined.CalendarMonth,
-                                    contentDescription = "Elegir fecha"
-                                )
+                                Icon(Icons.Outlined.CalendarMonth, contentDescription = "Elegir fecha")
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.large,
+                        colors = fieldColors
                     )
 
-                    // Botonera de acciones
-                    Row(
+                    // Botonera de acciones (fluida en varias líneas si no cabe)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Guardar cambios (usa validación del VM)
                         FilledTonalButton(
@@ -207,20 +233,45 @@ fun ProfileScreen(
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            ),
+                            shape = MaterialTheme.shapes.large,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                         ) {
-                            Text(if (loading) "Guardando..." else "Guardar cambios")
+                            Text(
+                                if (loading) "Guardando..." else "Guardar cambios",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         // Restablecer contraseña (envía email si hay)
                         OutlinedButton(
                             onClick = { viewModel.sendPasswordReset() },
-                            enabled = !loading && emailReadOnly.isNotBlank()
-                        ) { Text("Restablecer contraseña") }
+                            enabled = !loading && emailReadOnly.isNotBlank(),
+                            shape = MaterialTheme.shapes.large,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Text("Restablecer contraseña", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
 
-                        // Chip de feedback cuando el último guardado fue correcto
+                        // Chip “Guardado” (feedback visual)
                         if (ui.saved) {
-                            AssistChip(onClick = {}, label = { Text("Guardado") })
+                            AssistChip(
+                                onClick = {},
+                                enabled = false,
+                                label = { Text("Guardado") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    leadingIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
                         }
                     }
                 }
@@ -240,11 +291,8 @@ fun ProfileScreen(
                     showDateDialog = false
                 }) { Text("Aceptar") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDateDialog = false }) { Text("Cancelar") }
-            }
+            dismissButton = { TextButton(onClick = { showDateDialog = false }) { Text("Cancelar") } }
         ) {
-            // Sin cambio de modo (solo calendario)
             DatePicker(state = dateState, showModeToggle = false)
         }
     }

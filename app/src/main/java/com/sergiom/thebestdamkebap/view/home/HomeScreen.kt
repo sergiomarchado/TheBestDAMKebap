@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun HomeScreen(
     @DrawableRes logoRes: Int? = null,
-    onOpenLogin: () -> Unit,           // se mantiene por si quieres navegación dedicada
     onOpenRegister: () -> Unit,
     onSignedOut: () -> Unit,
     onOpenCart: () -> Unit = {},       // analytics / navegación global (además navegamos local)

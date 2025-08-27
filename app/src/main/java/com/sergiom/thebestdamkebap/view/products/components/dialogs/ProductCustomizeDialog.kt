@@ -29,14 +29,14 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.DialogProperties
 
 /**
  * UI de personalización de un producto: permitir quitar ingredientes.
  * - Chips seleccionados = ingrediente quitado (usa errorContainer para diferenciar).
  * - Acciones rápidas: Quitar todo / Restaurar.
  *
- * @param initial  Personalización previa (si llega desde un menú), opcional.
- * @param storage  Opcional; si no se pasa, se resuelve del bucket del proyecto.
+ * Extra: el **primer ingrediente** se considera base y **no puede quitarse**.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -55,7 +55,13 @@ fun ProductCustomizeDialog(
         else FirebaseStorage.getInstance("gs://$bucket")
     }
 
-    // Estado de ingredientes quitados (persistente)
+    // Ingrediente base (no removible): el primero de la lista, si existe
+    val baseIngredient = remember(product.id) { product.ingredients.firstOrNull() }
+    val totalRemovibles = remember(product.id) {
+        (product.ingredients.size - if (baseIngredient != null) 1 else 0).coerceAtLeast(0)
+    }
+
+    // Estado de ingredientes quitados (persistente) — saneado para no incluir el base
     val removed = rememberSaveable(
         product.id,
         saver = listSaver(
@@ -64,7 +70,8 @@ fun ProductCustomizeDialog(
         )
     ) {
         mutableStateListOf<String>().apply {
-            initial?.removedIngredients?.let { addAll(it) }
+            val initialClean = initial?.removedIngredients?.filter { it != baseIngredient }.orEmpty()
+            addAll(initialClean)
         }
     }
 
@@ -76,173 +83,200 @@ fun ProductCustomizeDialog(
     }
     val priceLabel = basePrice?.toPriceLabel()
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp)
-                .widthIn(max = 720.dp)
-        ) {
-            Column(Modifier.fillMaxWidth()) {
-
-                // Header compacto con miniatura + título + precio
-                Row(
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        // Ancho responsive del diálogo (más ancho en móvil, con topes en pantallas grandes)
+        BoxWithConstraints {
+            val widthModifier =
+                if (maxWidth < 720.dp) {
+                    // Teléfonos: casi a pantalla completa
+                    Modifier.fillMaxWidth(0.98f)
+                } else {
+                    // Tablets / landscape: aire lateral, con mínimos y máximos
                     Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Miniatura redonda (si hay imagen)
-                    if (!product.imagePath.isNullOrBlank()) {
-                        val ref = remember(product.imagePath) {
-                            storageResolved.reference.child(product.imagePath)
-                        }
-                        StorageImage(
-                            ref = ref,
-                            contentDescription = product.name,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                    }
-
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            product.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (priceLabel != null) {
-                            Text(
-                                priceLabel,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Cerrar")
-                    }
+                        .fillMaxWidth(0.90f)
+                        .widthIn(min = 720.dp, max = 1080.dp)
                 }
 
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                tonalElevation = 6.dp,
+                modifier = widthModifier
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                Column(Modifier.fillMaxWidth()) {
 
-                // Texto guía + acciones rápidas
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    DisableSelection {
-                        Text(
-                            "Personaliza tu producto:",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            "Quita los ingredientes que no quieres",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (product.ingredients.isEmpty()) {
-                        Text(
-                            "Este producto no tiene ingredientes personalizables.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val allRemoved = removed.size == product.ingredients.size
-                            val noneRemoved = removed.isEmpty()
-
-                            AssistChip(
-                                onClick = {
-                                    removed.clear()
-                                    removed.addAll(product.ingredients)
-                                },
-                                enabled = !allRemoved,
-                                label = { Text("Quitar todo") }
+                    // Header compacto con miniatura + título + precio
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Miniatura redonda (si hay imagen)
+                        if (!product.imagePath.isNullOrBlank()) {
+                            val ref = remember(product.imagePath) {
+                                storageResolved.reference.child(product.imagePath)
+                            }
+                            StorageImage(
+                                ref = ref,
+                                contentDescription = product.name,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
                             )
-                            AssistChip(
-                                onClick = { removed.clear() },
-                                enabled = !noneRemoved,
-                                label = { Text("Restaurar") }
-                            )
-                            Spacer(Modifier.weight(1f))
-                            Text(
-                                "${removed.size}/${product.ingredients.size}",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Spacer(Modifier.width(12.dp))
                         }
 
-                        // Chips fluidos (selección = quitado)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics {
-                                    contentDescription = "Ingredientes personalizables"
-                                }
-                        ) {
-                            product.ingredients.forEach { ing ->
-                                val isRemoved = ing in removed
-                                FilterChip(
-                                    selected = isRemoved,
-                                    onClick = {
-                                        if (isRemoved) removed.remove(ing) else removed.add(ing)
-                                    },
-                                    label = {
-                                        Text(ing, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        selectedTrailingIconColor = MaterialTheme.colorScheme.onErrorContainer
-                                    ),
-                                    border = filterChipBorder(
-                                        borderColor = MaterialTheme.colorScheme.outlineVariant,
-                                        selectedBorderColor = MaterialTheme.colorScheme.error,
-                                        enabled = true,
-                                        selected = isRemoved
-                                    )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                product.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (priceLabel != null) {
+                                Text(
+                                    priceLabel,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
-                    }
-                }
 
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
-                // Footer acciones
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
-                    Spacer(Modifier.weight(1f))
-                    Button(
-                        onClick = {
-                            onConfirm(ProductCustomization(removedIngredients = removed.toSet()))
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Cerrar")
                         }
-                    ) { Text("Guardar") }
+                    }
+
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                    // Texto guía + acciones rápidas
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DisableSelection {
+                            Text(
+                                "Personaliza tu producto:",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "Quita los ingredientes que no quieres",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (product.ingredients.isEmpty()) {
+                            Text(
+                                "Este producto no tiene ingredientes personalizables.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val allRemoved = removed.size == totalRemovibles
+                                val noneRemoved = removed.isEmpty()
+
+                                AssistChip(
+                                    onClick = {
+                                        removed.clear()
+                                        // quitar todos los que SÍ son removibles (excluye base)
+                                        removed.addAll(product.ingredients.filter { it != baseIngredient })
+                                    },
+                                    enabled = !allRemoved && totalRemovibles > 0,
+                                    label = { Text("Quitar todo") }
+                                )
+                                AssistChip(
+                                    onClick = { removed.clear() },
+                                    enabled = !noneRemoved,
+                                    label = { Text("Restaurar") }
+                                )
+                                Spacer(Modifier.weight(1f))
+                                Text(
+                                    "${removed.size}/$totalRemovibles",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            // Chips fluidos (selección = quitado) — el primero (base) está deshabilitado
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics {
+                                        contentDescription = "Ingredientes personalizables"
+                                    }
+                            ) {
+                                product.ingredients.forEachIndexed { index, ing ->
+                                    val isBase = (index == 0) && (ing == baseIngredient)
+                                    val chipEnabled = !isBase
+                                    val isRemoved = chipEnabled && (ing in removed)
+
+                                    FilterChip(
+                                        selected = isRemoved,
+                                        enabled = chipEnabled,
+                                        onClick = {
+                                            if (!chipEnabled) return@FilterChip
+                                            if (isRemoved) removed.remove(ing) else removed.add(ing)
+                                        },
+                                        label = {
+                                            Text(
+                                                text = if (isBase) ing else ing,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
+                                            selectedTrailingIconColor = MaterialTheme.colorScheme.onErrorContainer,
+                                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        border = filterChipBorder(
+                                            borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                            selectedBorderColor = MaterialTheme.colorScheme.error,
+                                            enabled = chipEnabled,
+                                            selected = isRemoved
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                    // Footer acciones
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = onDismiss) { Text("Cancelar") }
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = {
+                                onConfirm(ProductCustomization(removedIngredients = removed.toSet()))
+                            }
+                        ) { Text("Guardar") }
+                    }
                 }
             }
         }

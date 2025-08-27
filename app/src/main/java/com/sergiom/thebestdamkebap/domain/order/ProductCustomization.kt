@@ -10,6 +10,7 @@ data class ProductCustomization(
 ) {
     val isEmpty: Boolean get() = removedIngredients.isEmpty()
 
+    @Suppress("unused")
     companion object {
         val None = ProductCustomization()
     }

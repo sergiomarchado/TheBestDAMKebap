@@ -38,7 +38,6 @@ fun NavGraphBuilder.homeGraph(
                 logoRes = R.drawable.ic_logo_home,
                 onSignedOut = { navigateToAuth(AuthRoutes.entryForLogin()) },
                 onOpenCart = { /* navController.navigate(HomeRoutes.CART) */ },
-                onOpenLogin = { navigateToAuth(AuthRoutes.entryForLogin()) },
                 onOpenRegister = { navigateToAuth(AuthRoutes.entryForRegister()) }
             )
         }

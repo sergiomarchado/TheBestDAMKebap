@@ -1,18 +1,60 @@
 package com.sergiom.thebestdamkebap.view.address
 
-import androidx.compose.foundation.layout.*
+// Extras de estilo
+
+// Para FlowRow (distribuye los botones en varias líneas si hace falta)
+import android.R
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,7 +73,7 @@ import kotlinx.coroutines.flow.collectLatest
  * - UI observa `ui` con `collectAsStateWithLifecycle()` y reacciona a `events` en `LaunchedEffect`.
  */
 @Suppress("KotlinConstantConditions")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddressListScreen(
     @Suppress("unused") onBack: () -> Unit,                // se mantiene por compatibilidad (no se usa aquí)
@@ -76,6 +118,7 @@ fun AddressListScreen(
                 Text(
                     text = "Mis direcciones",
                     style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.semantics { heading() }
                 )
                 FilledTonalButton(
@@ -84,12 +127,13 @@ fun AddressListScreen(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    enabled = !ui.loading
+                    enabled = !ui.loading,
+                    shape = MaterialTheme.shapes.large,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    // Icono + texto: el texto ya “describe” la acción → contentDescription = null
                     Icon(Icons.Outlined.Add, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Añadir")
+                    Text("Añadir", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -106,11 +150,22 @@ fun AddressListScreen(
                     contentPadding = PaddingValues(bottom = 12.dp)
                 ) {
                     items(items = ui.addresses, key = { it.address.id }) { item ->
-                        ElevatedCard(shape = MaterialTheme.shapes.extraLarge) {
+                        val cardShape = MaterialTheme.shapes.extraLarge
+                        ElevatedCard(
+                            // ✅ Borde en color primario (M3: vía Modifier.border)
+                            modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary), cardShape),
+                            shape = cardShape,
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+                            ),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                        ) {
                             Column(Modifier.padding(16.dp)) {
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
                                 ) {
                                     Text(
                                         (item.address.label ?: item.address.street)
@@ -118,34 +173,83 @@ fun AddressListScreen(
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                     if (item.isDefault) {
-                                        AssistChip(onClick = {}, label = { Text("Predeterminada") })
+                                        // Chip “Predeterminada” decorativa con buen contraste en dark
+                                        AssistChip(
+                                            onClick = {},
+                                            enabled = false,
+                                            label = { Text(text = "Predeterminada", color = MaterialTheme.colorScheme.onPrimary) },
+                                            colors = AssistChipDefaults.assistChipColors(
+                                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                disabledContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                                                disabledLabelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f)
+                                            )
+                                        )
                                     }
                                 }
 
-                                Spacer(Modifier.height(6.dp))
+                                Spacer(Modifier.height(8.dp))
+                                HorizontalDivider(
+                                    thickness = 0.75.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                )
+                                Spacer(Modifier.height(8.dp))
 
-                                // Línea postal simple (sin i18n compleja por ahora)
-                                Text("${item.address.street}, ${item.address.number} ${item.address.floorDoor.orEmpty()}".trim())
-                                Text("${item.address.postalCode} ${item.address.city} ${item.address.province.orEmpty()}".trim())
+                                // Dirección
+                                Text(
+                                    "${item.address.street}, ${item.address.number} ${item.address.floorDoor.orEmpty()}".trim(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "${item.address.postalCode} ${item.address.city} ${item.address.province.orEmpty()}".trim(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
 
-                                Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(12.dp))
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedButton(onClick = { onEdit(item.address.id) }, enabled = !ui.loading) {
+                                // 🔁 Acciones: FlowRow evita que el texto se parta raro
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { onEdit(item.address.id) },
+                                        enabled = !ui.loading,
+                                        shape = MaterialTheme.shapes.large,
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                                    ) {
                                         Icon(Icons.Outlined.Edit, contentDescription = null)
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Editar")
+                                        Text("Editar", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
-                                    OutlinedButton(onClick = { vm.delete(item.address.id) }, enabled = !ui.loading) {
+
+                                    OutlinedButton(
+                                        onClick = { vm.delete(item.address.id) },
+                                        enabled = !ui.loading,
+                                        shape = MaterialTheme.shapes.large,
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                                    ) {
                                         Icon(Icons.Outlined.Delete, contentDescription = null)
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Eliminar")
+                                        Text("Eliminar", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
+
                                     TextButton(
                                         onClick = { vm.setDefault(item.address.id) },
-                                        enabled = !ui.loading && !item.isDefault
+                                        enabled = !ui.loading && !item.isDefault,
+                                        shape = MaterialTheme.shapes.large,
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                                     ) {
-                                        Text(if (item.isDefault) "Es la predeterminada" else "Hacer predeterminada")
+                                        Icon(Icons.Outlined.StarOutline, contentDescription = null)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            if (item.isDefault) "Es la predeterminada" else "Hacer predeterminada",
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
                             }

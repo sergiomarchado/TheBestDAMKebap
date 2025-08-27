@@ -76,5 +76,6 @@ class OrdersViewModel @Inject constructor(
         }
     }
 
+    @Suppress("unused")
     fun consumeInfo() { _ui.update { it.copy(info = null) } }
 }
