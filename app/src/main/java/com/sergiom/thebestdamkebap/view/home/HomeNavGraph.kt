@@ -101,7 +101,14 @@ fun HomeNavGraph(
         /* ───────── Cuenta ───────── */
         composable(HomeRoutes.PROFILE)  { ProfileScreen() }
         composable(HomeRoutes.SETTINGS) { SettingsScreen() }
-        composable(HomeRoutes.ORDERS)   { OrdersScreen() }
+        composable(HomeRoutes.ORDERS)   { OrdersScreen(
+            onOpenCart = {
+                navController.navigate(HomeRoutes.CART) {
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        ) }
 
         /* ───────── Direcciones: listado ───────── */
         composable(HomeRoutes.ADDRESSES) {
