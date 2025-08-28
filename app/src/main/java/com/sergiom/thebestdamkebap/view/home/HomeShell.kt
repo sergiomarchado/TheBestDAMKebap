@@ -24,13 +24,18 @@ import kotlinx.coroutines.launch
 /**
  * Contenedor visual principal de **Home**.
  *
- * - Drawer con opciones de cuenta.
- * - TopBar (branding y acciones de sesión).
- * - BottomBar (Inicio, Ofertas, Productos) con save/restore state entre tabs.
- * - FAB del carrito con badge.
- * - Slot de contenido para montar el `NavHost` interno.
+ * Estructura:
+ * - Drawer lateral con opciones de cuenta.
+ * - TopBar (branding + acciones de sesión).
+ * - BottomBar de tabs (Inicio, Ofertas, Productos) con **save/restore** de estado entre tabs.
+ * - FAB del carrito con badge de cantidad.
+ * - Slot de contenido para montar el `NavHost` **interno** de Home.
  *
- * Este componente es **presentacional**: no conoce lógica de negocio.
+ * Naturaleza:
+ * - Componente **presentacional**: no contiene lógica de negocio; delega callbacks.
+ *
+ * Previews/Tests:
+ * - [navController] inyectable para facilitar pruebas y previsualización.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +57,7 @@ fun HomeShell(
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Tabs (memoizadas)
+    // Tabs superiores (memoizadas para evitar recreaciones)
     val items = remember {
         listOf(
             HomeNavItem(HomeRoutes.HOME, Icons.Outlined.Home, "Inicio"),
@@ -62,7 +67,7 @@ fun HomeShell(
     }
     val topRoutes = remember { setOf(HomeRoutes.HOME, HomeRoutes.OFFERS, HomeRoutes.PRODUCTS) }
 
-    // Ruta actual (derivada del backStack) para resaltar tab y mostrar/ocultar FAB
+    // Ruta actual derivada del back stack → resalta tab y decide visibilidad del FAB
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute by remember(navBackStackEntry) {
         derivedStateOf {
@@ -77,6 +82,7 @@ fun HomeShell(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
+            // Contenido del drawer (con colores del tema)
             ModalDrawerSheet(
                 drawerContainerColor = MaterialTheme.colorScheme.tertiary,
                 drawerContentColor = MaterialTheme.colorScheme.onTertiary

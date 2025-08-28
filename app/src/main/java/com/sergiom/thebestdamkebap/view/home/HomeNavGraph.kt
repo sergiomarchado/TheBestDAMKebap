@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,24 +31,18 @@ import com.sergiom.thebestdamkebap.view.home.start.OrderGate
 import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
+import com.sergiom.thebestdamkebap.viewmodel.cart.CartViewModel // ⬅ import necesario
 
 /**
- * Grafo interno de **Home** (NavHost hijo).
+ * Grafo **interno** del flujo Home (NavHost hijo).
  *
- * Responsabilidades:
- * - Define los destinos internos de Home (portada, productos, cuenta, direcciones, carrito, etc.).
- * - Aplica el "gate" de pedido (modo/dirección) antes de entrar en [ProductsScreen].
+ * Qué define:
+ * - Pantalla de portada [HomeRoutes.HOME], ofertas, productos (gateado), cuenta, direcciones y carrito.
+ * - Aplicación de un **gate** (modo/dirección) antes de entrar en [ProductsScreen].
  *
- * Notas de integración:
- * - Este NavHost debe usar un **NavController hijo** (no el raíz) creado por el shell de Home
- *   (p. ej. HomeScreen), para que el back stack de Home sea independiente del grafo raíz.
- * - `isGuest` y los callbacks `onRequestLogin/Register` permiten a [OrderGate] redirigir a Auth
- *   cuando el invitado necesite autenticarse para completar el flujo.
- *
- * @param navController NavController **hijo** del flujo de Home.
- * @param isGuest Indica si el usuario actual es invitado.
- * @param onRequestLogin Callback para solicitar apertura del flujo de Login (lo atiende el grafo raíz).
- * @param onRequestRegister Callback para solicitar apertura del flujo de Register (lo atiende el grafo raíz).
+ * Integración:
+ * - Usa un NavController **hijo** (independiente del grafo raíz).
+ * - `isGuest` y callbacks `onRequestLogin/Register` permiten a [OrderGate] invocar Auth cuando es necesario.
  */
 @Composable
 fun HomeNavGraph(
@@ -64,17 +59,11 @@ fun HomeNavGraph(
     ) {
         /* ───────── Portada / Inicio ───────── */
         composable(HomeRoutes.HOME) {
-            // VM que actualiza el contexto de pedido en un repositorio de sesión (OrderSessionRepository)
             val gateVm: OrderGateViewModel = hiltViewModel()
-
             HomeStartScreen(
                 onStartOrder = { mode, addressId ->
-                    // 1) Persistir el contexto de pedido seleccionado (modo + dirección).
-                    // 2) Navegar a Productos. El gate validará que la sesión esté completa.
                     gateVm.confirmStart(mode.toDomain(), addressId)
-                    navController.navigate(HomeRoutes.PRODUCTS) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(HomeRoutes.PRODUCTS) { launchSingleTop = true }
                 },
                 onAddAddress = { navController.navigate(HomeRoutes.AddressEdit.routeFor()) },
                 onManageAddresses = { navController.navigate(HomeRoutes.ADDRESSES) }
@@ -84,9 +73,7 @@ fun HomeNavGraph(
         /* ───────── Ofertas ───────── */
         composable(HomeRoutes.OFFERS) { PlaceholderScreen("Ofertas") }
 
-        /* ───────── Productos (protegido por gate) ─────────
-         * Si falta modo/dirección, [OrderGate] muestra un BottomSheet para completarlos.
-         */
+        /* ───────── Productos (protegido por gate) ───────── */
         composable(HomeRoutes.PRODUCTS) {
             OrderGate(
                 isGuest = isGuest,
@@ -101,27 +88,34 @@ fun HomeNavGraph(
         /* ───────── Cuenta ───────── */
         composable(HomeRoutes.PROFILE)  { ProfileScreen() }
         composable(HomeRoutes.SETTINGS) { SettingsScreen() }
-        composable(HomeRoutes.ORDERS)   { OrdersScreen(
-            onOpenCart = {
-                navController.navigate(HomeRoutes.CART) {
-                    launchSingleTop = true
-                    restoreState = true
+        composable(HomeRoutes.ORDERS)   {
+            OrdersScreen(
+                onOpenCart = {
+                    navController.navigate(HomeRoutes.CART) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
-            }
-        ) }
+            )
+        }
 
         /* ───────── Direcciones: listado ───────── */
         composable(HomeRoutes.ADDRESSES) {
             AddressListScreen(
                 onBack = { navController.popBackStack() },
                 onAddNew = { navController.navigate(HomeRoutes.AddressEdit.routeFor()) },
-                onEdit = { aid -> navController.navigate(HomeRoutes.AddressEdit.routeFor(aid)) }
+                onEdit = { aid -> navController.navigate(HomeRoutes.AddressEdit.routeFor(aid)) },
+                onSelect = { aid ->
+                    // devolver resultado y volver
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedAddressId", aid)
+                    navController.popBackStack()
+                }
             )
         }
 
-        /* ───────── Direcciones: crear/editar ─────────
-         * Ruta patrón con argumento opcional en query (?aid={aid}). Si no se pasa, crea nueva.
-         */
+        /* ───────── Direcciones: crear/editar ───────── */
         composable(
             route = HomeRoutes.ADDRESS_EDIT,
             arguments = listOf(
@@ -135,23 +129,43 @@ fun HomeNavGraph(
             val aid = backStackEntry.arguments?.getString(HomeRoutes.AddressEdit.ARG_AID)
             AddressEditScreen(
                 aid = aid,
-                onClose = { navController.popBackStack() }
+                onClose = { savedId ->
+                    // devolver id guardado y volver
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedAddressId", savedId)
+                    navController.popBackStack()
+                }
             )
         }
 
-        /* ───────── Carrito ─────────
-         * Reutilizamos HomeStartViewModel SOLO para acceder a direcciones (ver sección "Revisión").
-         */
+        /* ───────── Carrito ───────── */
         composable(HomeRoutes.CART) {
+            // Etiquetas de direcciones para render
             val hsVm: HomeStartViewModel = hiltViewModel()
             val homeUi by hsVm.ui.collectAsStateWithLifecycle()
-
-            // Lambda estable que mapea id → etiqueta de dirección (evita recrearla en cada recomposición)
             val addressLabelProvider: (String) -> String? = remember(homeUi.allAddresses) {
                 { aid ->
                     homeUi.allAddresses
                         .firstOrNull { it.id == aid }
                         ?.let { formatAddressLine(it.street, it.number, it.city) }
+                }
+            }
+
+            // Recoger resultado desde Direcciones y fijarlo en la sesión
+            val cartVm: CartViewModel = hiltViewModel()
+            // Siempre el handle del entry de CART (no el "current")
+            val cartEntry = remember { navController.getBackStackEntry(HomeRoutes.CART) }
+            val selectedAddrFlow = remember(cartEntry) {
+                cartEntry.savedStateHandle.getStateFlow<String?>("selectedAddressId", null)
+            }
+            val selectedAddrId by selectedAddrFlow.collectAsStateWithLifecycle()
+
+            LaunchedEffect(selectedAddrId) {
+                selectedAddrId?.let { id ->
+                    cartVm.setAddress(id) // fija DELIVERY + addressId en OrderSession
+                    navController.currentBackStackEntry!!
+                        .savedStateHandle["selectedAddressId"] = null
                 }
             }
 
@@ -168,7 +182,7 @@ fun HomeNavGraph(
     }
 }
 
-/* ═══════════ Placeholder mínimo ═══════════ */
+/* Placeholder mínimo para pantallas pendientes. */
 @Composable
 private fun PlaceholderScreen(@Suppress("SameParameterValue") title: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -176,7 +190,7 @@ private fun PlaceholderScreen(@Suppress("SameParameterValue") title: String) {
     }
 }
 
-/* Helper: mapear el modo de Home VM al modo de dominio */
+/* Helper: mapear el modo de Home VM al modo de dominio. */
 private fun HomeStartViewModel.Mode.toDomain(): OrderMode =
     when (this) {
         HomeStartViewModel.Mode.DELIVERY -> OrderMode.DELIVERY

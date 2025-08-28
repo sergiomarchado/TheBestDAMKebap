@@ -13,25 +13,29 @@ import com.sergiom.thebestdamkebap.core.imageloading.StorageUrlMemoryCache
 import dagger.hilt.android.HiltAndroidApp
 
 /**
- * Application raíz de la app.
+ * # TheBestDamKebapApp
  *
- * Responsabilidades:
- * - Inicializar Hilt (DI) mediante [HiltAndroidApp].
- * - Inicializar Firebase lo antes posible (idempotente).
- * - Configurar Firebase App Check:
- *   - En build *debug*: [DebugAppCheckProviderFactory] (permite ejecutar fuera de Play).
- *   - En build *release*: [PlayIntegrityAppCheckProviderFactory] (tokens válidos vía Play).
+ * `Application` raíz. Se ejecuta **antes** que cualquier Activity y es el lugar para configurar
+ * dependencias globales:
  *
- * Notas:
- * - La detección de build *debug* usa `ApplicationInfo.FLAG_DEBUGGABLE` para evitar
- *   depender de `BuildConfig`.
- * - No capturamos excepciones aquí: preferimos fallar ruidoso en desarrollo.
- * - Implementa [ImageLoaderFactory] para proporcionar el `ImageLoader` global de Coil v2.
+ * - **Hilt**: `@HiltAndroidApp` genera los componentes de DI y enlaza el ciclo de vida de la app.
+ * - **Firebase**: se inicializa tan pronto como sea posible (la llamada es idempotente).
+ * - **Firebase App Check**: selecciona proveedor según el tipo de build:
+ *   - **Debug** → [DebugAppCheckProviderFactory]: permite ejecutar fuera de Play (emulador, CI).
+ *   - **Release** → [PlayIntegrityAppCheckProviderFactory]: emite tokens verificados por Play.
+ * - **Coil v2**: implementa [ImageLoaderFactory] para proveer un `ImageLoader` global que la
+ *   librería usará por defecto en toda la app.
+ *
+ * ### Notas
+ * - `isDebugBuild` se calcula leyendo `ApplicationInfo.FLAG_DEBUGGABLE` para no depender de
+ *   `BuildConfig` (útil en módulos compartidos).
+ * - No capturamos excepciones aquí: fallar **temprano y ruidoso** ayuda durante desarrollo.
+ * - Las URLs firmadas (p. ej. Firebase Storage) suelen ignorar headers de caché: ver `respectCacheHeaders(false)`.
  */
 @HiltAndroidApp
 class TheBestDamKebapApp : Application(), ImageLoaderFactory {
 
-    // Evaluado on-demand; disponible tanto en onCreate() como en newImageLoader().
+    /// Detecta si la app es "debuggable" (equivale a BuildConfig.DEBUG pero sin depender de él).
     private val isDebugBuild: Boolean by lazy {
         (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
@@ -39,30 +43,36 @@ class TheBestDamKebapApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
 
-        // Inicializa Firebase (seguro aunque ya esté auto-inicializado por los servicios).
+        // Inicializa Firebase. Seguro aunque ya haya sido auto-inicializado por Google Services.
+        // Si google-services.json no está presente o es inválido, esta llamada devolverá null.
         FirebaseApp.initializeApp(this)
 
-        // Selecciona el proveedor de App Check según el tipo de build.
+        // Selecciona el proveedor de App Check según el tipo de build:
+        // - Debug: tokens "fake" para desarrollo/emulador.
+        // - Release: Play Integrity (requiere Play Services/Play Store).
         val factory = if (isDebugBuild) {
             DebugAppCheckProviderFactory.getInstance()
         } else {
             PlayIntegrityAppCheckProviderFactory.getInstance()
         }
 
-        // Registra la factory en Firebase App Check: los SDKs adjuntarán tokens automáticamente.
+        // Registra la factory: los SDKs de Firebase adjuntarán tokens automáticamente en las peticiones.
         FirebaseAppCheck.getInstance().installAppCheckProviderFactory(factory)
     }
 
-    // Coil v2: ImageLoader global para toda la app.
+    // Provee el ImageLoader global que Coil utilizará por defecto.
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
-            // Si tus URLs llevan versión/firmas (p. ej., de Firebase Storage), puedes ignorar headers.
+            // Para URLs firmadas que ya llevan versión/hash (ej. Firebase Storage), ignorar headers
+            // evita "no-cache" innecesario y mejora hit-rate de caché.
             .respectCacheHeaders(false)
+            // Transición de entrada agradable en cargas iniciales.
             .crossfade(true)
+            // En builds debug, habilita logs detallados de Coil.
             .apply { if (isDebugBuild) logger(DebugLogger()) }
             .build()
 
-    // Limpia la caché de URLs cuando la UI pasa a background.
+    // Limpia la caché de URLs derivadas (tu caché en memoria) cuando la UI se oculta.
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_UI_HIDDEN) {
@@ -70,7 +80,7 @@ class TheBestDamKebapApp : Application(), ImageLoaderFactory {
         }
     }
 
-    // Limpia la caché de URLs en memoria baja.
+    // Limpia en memoria baja (evento más agresivo).
     override fun onLowMemory() {
         super.onLowMemory()
         StorageUrlMemoryCache.clear()

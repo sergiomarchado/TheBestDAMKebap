@@ -22,13 +22,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.google.firebase.storage.FirebaseStorage
+import com.sergiom.thebestdamkebap.core.firebase.rememberStorage
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
+import kotlinx.coroutines.delay
 
+/**
+ * Carrusel de promociones a pantalla completa (full-bleed).
+ *
+ * - `HorizontalPager` para paginar banners.
+ * - `StorageImage` (Firebase Storage + caché propia + Coil).
+ * - Overlay con gradiente + título para legibilidad.
+ * - Dots de paginación con colores de tema para buen contraste.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun PromoCarouselFullBleed(
@@ -37,13 +45,13 @@ internal fun PromoCarouselFullBleed(
 ) {
     val pagerState = rememberPagerState { promos.size }
     val colors = MaterialTheme.colorScheme
-    val storage = remember { FirebaseStorage.getInstance() } // usa el bucket del google-services.json
+    val storage = rememberStorage() // usa el bucket configurado (y fácil de redirigir a emulador)
 
-    // Auto-slide
-    LaunchedEffect(pagerState.pageCount) {
+    // Auto-slide cuando hay más de una promo
+    LaunchedEffect(pagerState.pageCount, autoAdvanceMillis) {
         if (pagerState.pageCount <= 1) return@LaunchedEffect
         while (true) {
-            kotlinx.coroutines.delay(autoAdvanceMillis)
+            delay(autoAdvanceMillis)
             pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
         }
     }
@@ -55,9 +63,10 @@ internal fun PromoCarouselFullBleed(
     ) {
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             val promo = promos[page]
+            // Resolvemos la referencia una sola vez por path
             val ref = remember(promo.storagePath) { storage.reference.child(promo.storagePath) }
 
-            // Imagen full-bleed desde downloadUrl (funciona con Coil por defecto)
+            // Imagen full-bleed (Coil cachea memoria+disco tras resolver URL)
             StorageImage(
                 ref = ref,
                 contentDescription = promo.title,
@@ -65,27 +74,27 @@ internal fun PromoCarouselFullBleed(
                 contentScale = ContentScale.Crop
             )
 
-            // Overlay (gradiente + título)
+            // Overlay con gradiente para mejorar contraste del título
             Box(
                 Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color.Transparent,
-                                colors.primary.copy(alpha = 0f),
-                                colors.primary.copy(alpha = 0.55f)
+                                colors.surface.copy(alpha = 0f),
+                                colors.surface.copy(alpha = 0f),
+                                colors.surface.copy(alpha = 0.55f)
                             )
                         )
                     )
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 contentAlignment = Alignment.BottomStart
             ) {
-                Text(promo.title, style = MaterialTheme.typography.titleLarge, color = colors.onPrimary)
+                Text(promo.title, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
             }
         }
 
-        // Dots
+        // Dots de página (usa colores del tema para buen contraste en claro/oscuro)
         Row(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -98,10 +107,12 @@ internal fun PromoCarouselFullBleed(
                     Modifier
                         .size(if (active) 10.dp else 8.dp)
                         .clip(CircleShape)
-                        .background(if (active) Color.White else Color.White.copy(alpha = 0.5f))
+                        .background(
+                            if (active) colors.onPrimary
+                            else colors.onPrimary.copy(alpha = 0.5f)
+                        )
                 )
             }
         }
     }
 }
-

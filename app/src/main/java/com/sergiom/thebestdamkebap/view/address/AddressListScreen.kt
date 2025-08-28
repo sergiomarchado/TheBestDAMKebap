@@ -1,9 +1,6 @@
 package com.sergiom.thebestdamkebap.view.address
 
-// Extras de estilo
-
 // Para FlowRow (distribuye los botones en varias líneas si hace falta)
-import android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -79,6 +76,7 @@ fun AddressListScreen(
     @Suppress("unused") onBack: () -> Unit,                // se mantiene por compatibilidad (no se usa aquí)
     onAddNew: () -> Unit,
     onEdit: (String) -> Unit,
+    onSelect: (String) -> Unit,
     vm: AddressListViewModel = hiltViewModel()
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -250,6 +248,15 @@ fun AddressListScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                    }
+
+                                    TextButton(
+                                        onClick = { onSelect(item.address.id) },   // ⬅️ devuelve id seleccionado
+                                        enabled = !ui.loading,
+                                        shape = MaterialTheme.shapes.large,
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                                    ) {
+                                        Text("Usar esta dirección", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                             }

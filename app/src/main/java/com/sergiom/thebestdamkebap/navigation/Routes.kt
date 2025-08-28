@@ -1,12 +1,17 @@
 package com.sergiom.thebestdamkebap.navigation
 
 /**
- * Conjunto centralizado de rutas de navegación.
+ * Definición centralizada de rutas de navegación para la app.
  *
- * Convenciones:
- * - [Graph]: subgrafos raíz (agrupan pantallas relacionadas).
- * - [Standalone]: pantallas únicas fuera de subgrafos (ej. Splash).
- * - `*Destinations`: destinos hoja dentro de cada grafo.
+ * Convenciones usadas:
+ * - [Graph]: agrupa subgrafos raíz (ej. `auth`, `home`), cada uno puede tener varias pantallas.
+ * - [Standalone]: pantallas que no dependen de un grafo (ej. splash inicial).
+ * - `*Destinations`: destinos concretos (pantallas hoja) dentro de un grafo.
+ *
+ * Ventajas:
+ * - Se evita duplicar strings en varios sitios → menos errores por typos.
+ * - Si cambia un nombre de ruta, solo se modifica aquí.
+ * - Mejora la legibilidad al saber de un vistazo cómo está estructurada la navegación.
  */
 object Graph {
     const val AUTH = "auth"

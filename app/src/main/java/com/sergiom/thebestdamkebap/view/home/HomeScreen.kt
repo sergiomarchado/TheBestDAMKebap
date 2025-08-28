@@ -24,12 +24,14 @@ import kotlinx.coroutines.flow.collectLatest
 /**
  * Shell + orquestación de la sección **Home**.
  *
- * - Conecta con `AuthViewModel` y `CartViewModel` para datos globales (usuario, carrito).
- * - Escucha eventos efímeros (snackbars, ir al carrito) de `AuthViewModel` y `HomeViewModel`.
- * - Aloja el `HomeNavGraph` con un NavController **hijo** (independiente del grafo raíz).
+ * Responsabilidades:
+ * - Conectar con `AuthViewModel` y `CartViewModel` para estado global (usuario, carrito).
+ * - Escuchar eventos efímeros (snackbars, navegación a carrito) de `AuthViewModel` y `HomeViewModel`.
+ * - Renderizar el contenedor visual [HomeShell] y alojar el NavHost **hijo** ([HomeNavGraph]).
  *
- * Nota: los efectos que colectan `Flow`s están ligados al ciclo de vida (STARTED) para
- * evitar fugas y colecciones duplicadas al recomponer.
+ * Ciclo de vida:
+ * - Los `Flow` de eventos se colectan con `repeatOnLifecycle(STARTED)` para evitar fugas y
+ *   colecciones duplicadas tras recomposición / cambios de configuración.
  */
 @Composable
 fun HomeScreen(
@@ -41,15 +43,15 @@ fun HomeScreen(
     authVm: AuthViewModel = hiltViewModel(),
     cartVm: CartViewModel = hiltViewModel()
 ) {
-    // --- Estado Auth / Cart ---
+    // ── Estado global (usuario / carga / carrito) ──────────────────────────────
     val user by authVm.user.collectAsStateWithLifecycle()
     val loading by authVm.loading.collectAsStateWithLifecycle()
     val cartCount by cartVm.totalItems.collectAsStateWithLifecycle()
 
-    // Tratamos `user == null` como invitado (permite gatear en Products)
+    // Invitado = true si user == null o es anónimo (permite “gatear” en Products)
     val userIsGuest = user?.isAnonymous != false
 
-    // Etiquetas de UI derivadas del usuario (estable ante recomposición)
+    // Etiquetas derivadas del usuario (memorizadas para evitar recomputar en cada recomposición)
     val userLabel by remember(user) {
         derivedStateOf {
             when {
@@ -78,6 +80,7 @@ fun HomeScreen(
             }
         }
     }
+    // Efectos lifecycle-aware para eventos de Home (navegar a carrito, info/errores)
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
             viewModel.events.collectLatest { ev ->

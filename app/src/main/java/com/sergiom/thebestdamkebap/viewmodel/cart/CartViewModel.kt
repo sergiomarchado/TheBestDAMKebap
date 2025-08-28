@@ -3,6 +3,8 @@ package com.sergiom.thebestdamkebap.viewmodel.cart
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sergiom.thebestdamkebap.domain.address.AddressRepository
+import com.sergiom.thebestdamkebap.domain.address.AddressSnap
+import com.sergiom.thebestdamkebap.domain.address.Address as DomainAddress
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.cart.CartRepository
 import com.sergiom.thebestdamkebap.domain.order.OrderContext
@@ -75,7 +77,7 @@ class CartViewModel @Inject constructor(
 
         val defId = profiles.observeProfile(uid).first()?.defaultAddressId
         val candidate: String? = when {
-            !defId.isNullOrBlank() && addresses.observeAddress(uid, defId).first() != null -> defId
+            !defId.isNullOrBlank() && addresses.addressExists(uid, defId) -> defId
             else -> addresses.observeAddresses(uid).first().firstOrNull()?.id
         }
 
@@ -106,6 +108,8 @@ class CartViewModel @Inject constructor(
 
                 // 2) DELIVERY → revalidar y corregir addressId contra Firestore (estado actual)
                 var finalAddressId: String? = null
+                var domAddress: DomainAddress? = null
+
                 if (mode == OrderMode.DELIVERY) {
                     val uid = auth.currentUser.firstOrNull()?.id
                     if (uid == null) {
@@ -138,16 +142,30 @@ class CartViewModel @Inject constructor(
                         return@withLock
                     }
 
-                    // Si corregimos el id, sincroniza el OrderSession para el resto de la app
+                    // Sincroniza OrderSession si cambió
                     if (finalAddressId != currentId) {
-                        // Sincroniza la OrderSession para que la UI vea el id corregido.
                         session.startOrder(OrderMode.DELIVERY, finalAddressId)
-                        // No hace falta volver a leer ctx.
+                    }
+
+                    // Obtener el dominio desde la LISTA (evita first() nulo del flujo granular)
+                    domAddress = list.firstOrNull { it.id == finalAddressId } ?: run {
+                        _events.emit(Event.Error("La dirección seleccionada ya no existe."))
+                        return@withLock
                     }
                 }
 
-                // 3) Crear pedido (para PICKUP, finalAddressId es null por contrato)
-                val orderId = orders.submit(cartState, mode, finalAddressId)
+                // 3) Snapshot para DELIVERY (normalizado) o null para PICKUP
+                val deliverySnap: AddressSnap? = if (mode == OrderMode.DELIVERY) {
+                    val snap = domAddress!!.toSnapNormalized()
+                    if (snap == null) {
+                        _events.emit(Event.Error("La dirección no tiene teléfono válido. Edítala para corregirlo."))
+                        return@withLock
+                    }
+                    snap
+                } else null
+
+                // 4) Crear pedido
+                val orderId = orders.submit(cartState, mode, finalAddressId, deliverySnap)
                 cart.clear()
                 _events.emit(Event.Success(orderId))
 
@@ -161,5 +179,40 @@ class CartViewModel @Inject constructor(
                 _placing.value = false
             }
         }
+    }
+
+    fun setAddress(addressId: String) = viewModelScope.launch {
+        // Forzamos DELIVERY porque elegir dirección implica ese modo
+        session.startOrder(OrderMode.DELIVERY, addressId)
+    }
+
+    /* ───────── Helpers privados ───────── */
+
+    private fun normalizePhone(raw: String?): String? {
+        val s = raw?.trim() ?: return null
+        if (s.isEmpty()) return null
+        val hasPlus = s.startsWith("+")
+        val digits = s.filter { it.isDigit() }
+        if (digits.length !in 9..15) return null
+        return if (hasPlus) "+$digits" else digits
+    }
+
+    private fun DomainAddress.toSnapNormalized(): AddressSnap? {
+        val phoneNorm = normalizePhone(phone) ?: return null
+        val latLng = if (lat != null && lng != null) lat to lng else null
+        return AddressSnap(
+            label = label,
+            recipientName = recipientName,
+            phone = phoneNorm,
+            street = street,
+            number = number,
+            floorDoor = floorDoor,
+            city = city,
+            province = province,
+            postalCode = postalCode,
+            notes = notes,
+            lat = latLng?.first,
+            lng = latLng?.second
+        )
     }
 }

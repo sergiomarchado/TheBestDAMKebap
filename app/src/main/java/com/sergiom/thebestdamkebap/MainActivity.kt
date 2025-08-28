@@ -8,17 +8,21 @@ import com.sergiom.thebestdamkebap.navigation.AppNavHost
 import com.sergiom.thebestdamkebap.ui.theme.TheBestDAMKebapTheme
 import dagger.hilt.android.AndroidEntryPoint
 /**
- * MainActivity
+ * # MainActivity
  *
- * Propósito: actividad raíz que hospeda el árbol de Jetpack Compose y delega la navegación
- * en [AppNavHost]. Aquí sólo se realiza la configuración mínima de ventana/tema y el arranque
- * del contenido Compose.
+ * Actividad raíz de la app. Su única responsabilidad es:
+ * - Configurar la ventana en **modo edge-to-edge** (la UI puede dibujar bajo barras del sistema).
+ * - Aplicar el **tema Material 3** de la app.
+ * - Montar el árbol de **Jetpack Compose** delegando la navegación en [AppNavHost].
  *
- * Inyección de dependencias: anotada con [AndroidEntryPoint] para habilitar Hilt en la Activity.
- * Esto permite que, dentro de Compose, se puedan obtener ViewModels con `hiltViewModel()`.
+ * ## Hilt
+ * Anotada con [AndroidEntryPoint] para que los `ViewModel` (y otras dependencias) puedan
+ * inyectarse dentro de Composables vía `hiltViewModel()`.
  *
- * Edge-to-edge: se activa para dibujar bajo las barras del sistema; la UI deberá gestionar
- * los insets correctamente para evitar que el contenido quede oculto.
+ * ## Insets
+ * Al habilitar edge-to-edge, la UI debe manejar insets (status/navigation bars) desde Compose
+ * —p. ej., con `Scaffold` + `contentWindowInsets = WindowInsets.safeDrawing` o similar— para que
+ * el contenido no quede detrás de las barras del sistema.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -31,7 +35,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Habilitamos el Theme de Material3
             TheBestDAMKebapTheme {
-                // AppNavHost define el NavController y el grafo de navegación.
+                // Punto de entrada de navegación: crea/gestiona NavController y el grafo.
                 AppNavHost()
             }
         }

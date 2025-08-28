@@ -34,7 +34,7 @@ import com.sergiom.thebestdamkebap.viewmodel.address.AddressEditViewModel
 @Composable
 fun AddressEditScreen(
     aid: String?,
-    onClose: () -> Unit,
+    onClose: (String) -> Unit,
     vm: AddressEditViewModel = hiltViewModel()
 ) {
     // Bootstrap controlado por parametro de navegación
@@ -61,7 +61,7 @@ fun AddressEditScreen(
     // Acción de guardado (se usa en botón y en IME Done)
     val onSave = remember(ui.loading, f.canSave) {
         {
-            if (saveEnabled) vm.save { onClose() }
+            if (saveEnabled) vm.save {id -> onClose(id) }
         }
     }
 

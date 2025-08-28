@@ -10,8 +10,9 @@ import com.sergiom.thebestdamkebap.view.home.HomeScreen
 /**
  * Subgrafo de la sección **Home**.
  *
- * - Registra el grafo [Graph.HOME] y su destino inicial [HomeDestinations.HOME_MAIN].
- * - Monta la pantalla de Home y define callbacks de salida a Auth.
+ * - Registra el grafo [Graph.HOME] con destino inicial [HomeDestinations.HOME_MAIN].
+ * - Muestra la pantalla principal de Home ([HomeScreen]).
+ * - Define callbacks para salir de Home y volver al flujo de Auth.
  */
 fun NavGraphBuilder.homeGraph(
     navController: NavHostController
@@ -22,22 +23,27 @@ fun NavGraphBuilder.homeGraph(
     ) {
         composable(HomeDestinations.HOME_MAIN) {
 
-            // Helper local para navegar a Auth limpiando el subgrafo de Home.
+            // Función auxiliar: navega a Auth limpiando el subgrafo de Home.
+            // Esto evita que, tras cerrar sesión, el usuario pueda volver atrás al Home.
             val navigateToAuth: (String) -> Unit = { target ->
                 navController.navigate(target) {
+
+                    // Eliminamos el grafo de Home del back stack.
                     popUpTo(Graph.HOME) {
                         inclusive = true
-                        // saveState = true // habilitar si quieres restaurar Home más adelante
                     }
-                    launchSingleTop = true
-                    restoreState = true
+                    launchSingleTop = true  // evita duplicar destinos en el stack.
+                    restoreState = true     // intenta restaurar estado guardado si existía.
                 }
             }
 
             HomeScreen(
                 logoRes = R.drawable.ic_logo_home,
+                // Callback al cerrar sesión: vuelve a Auth/Login.
                 onSignedOut = { navigateToAuth(AuthRoutes.entryForLogin()) },
-                onOpenCart = { /* navController.navigate(HomeRoutes.CART) */ },
+                // Callback al abrir el carrito (pendiente de implementación).
+                onOpenCart = { },
+                // Callback para abrir Auth/Register directamente desde Home.
                 onOpenRegister = { navigateToAuth(AuthRoutes.entryForRegister()) }
             )
         }

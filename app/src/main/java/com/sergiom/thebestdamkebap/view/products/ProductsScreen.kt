@@ -1,5 +1,6 @@
 package com.sergiom.thebestdamkebap.view.products
 
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.Coil
+import coil.ImageLoader
+import coil.request.ImageRequest
 import com.google.firebase.storage.FirebaseStorage
 import com.sergiom.thebestdamkebap.core.firebase.rememberStorage
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
@@ -28,6 +32,10 @@ import com.sergiom.thebestdamkebap.view.products.components.products.CategoryRow
 import com.sergiom.thebestdamkebap.view.products.components.products.ProductCard
 import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 import com.sergiom.thebestdamkebap.viewmodel.products.ProductsViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun ProductsScreen(
@@ -35,6 +43,13 @@ fun ProductsScreen(
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val storage = rememberStorage()
+    val context = LocalContext.current
+
+    // Prefetch: al cambiar la lista, precargamos las primeras N imágenes para mejorar la percepción de velocidad.
+    LaunchedEffect(ui.items) {
+        val paths = ui.items.mapNotNull { it.imagePath }.take(6)
+        prefetchStorageImages(context, storage, paths)
+    }
 
     // Estados locales para abrir los diálogos
     var productToCustomize by remember { mutableStateOf<com.sergiom.thebestdamkebap.domain.catalog.Product?>(null) }
@@ -59,7 +74,7 @@ fun ProductsScreen(
         when {
             !ui.loading && ui.items.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay productos en esta categoría")
+                    Text("No hay productos en esta categoría") // TODO: i18n a strings.xml
                 }
             }
             else -> {
@@ -179,13 +194,14 @@ private fun MenuCard(
                     val ref = remember(path) { storage.reference.child(path) }
                     StorageImage(
                         ref = ref,
-                        contentDescription = menu.name,
+                        contentDescription = menu.name, // Si es decorativa, pasa null
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(imageShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
+                    // Placeholder simple; puedes mover el texto a strings.xml cuando quieras
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("IMG") }
                 }
             }
@@ -230,5 +246,34 @@ private fun MenuCard(
             border = border,
             modifier = Modifier.fillMaxWidth()
         ) { content() }
+    }
+}
+
+/* ============================================================
+ * Helper: prefetch de imágenes de Firebase Storage (barato y optativo).
+ * - Resuelve downloadUrl por cada path y se lo pasa al ImageLoader de Coil.
+ * - Se hace en IO y se ignoran errores (no bloquea la UI).
+ * - Llamado desde LaunchedEffect(ui.items) con las primeras N rutas.
+ * ============================================================ */
+private suspend fun prefetchStorageImages(
+    context: Context,
+    storage: FirebaseStorage,
+    paths: List<String>
+) = withContext(Dispatchers.IO) {
+    if (paths.isEmpty()) return@withContext
+    val loader: ImageLoader = Coil.imageLoader(context)
+    for (path in paths) {
+        val url = try {
+            storage.reference.child(path).downloadUrl.await().toString()
+        } catch (_: Throwable) {
+            null
+        }
+        if (url != null) {
+            loader.enqueue(
+                ImageRequest.Builder(context)
+                    .data(url)
+                    .build()
+            )
+        }
     }
 }

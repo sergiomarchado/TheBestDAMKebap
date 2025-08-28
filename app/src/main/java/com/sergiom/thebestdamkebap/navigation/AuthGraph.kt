@@ -17,9 +17,14 @@ import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
  * Subgrafo de autenticación.
  *
  * Estructura:
- * - Ruta: [Graph.AUTH]
- * - Inicio: [AuthDestinations.LOGIN]
- * - Entrada parametrizada: [AuthRoutes.ENTRY] con query opcional `start` (login/register).
+ * - Ruta del grafo: [Graph.AUTH]
+ * - Pantalla inicial: [AuthDestinations.LOGIN]
+ * - Entrada indirecta: [AuthRoutes.ENTRY] → permite abrir directamente LOGIN o REGISTER
+ *   en función de un parámetro `start`.
+ *
+ * Contiene:
+ * - [AuthDestinations.LOGIN] → pantalla de login.
+ * - [AuthDestinations.REGISTER] → pantalla de registro.
  */
 fun NavGraphBuilder.authGraph(
     navController: NavHostController
@@ -28,7 +33,9 @@ fun NavGraphBuilder.authGraph(
         startDestination = AuthDestinations.LOGIN,
         route = Graph.AUTH
     ) {
-        // ENTRY opcional: decide a dónde entrar (login/register) según query param `start`.
+        // ──────────────────────────────────────────────────────────────
+        // ENTRY opcional: redirige a login o registro según query param.
+        // ──────────────────────────────────────────────────────────────
         composable(
             route = AuthRoutes.ENTRY,
             arguments = listOf(
@@ -38,39 +45,50 @@ fun NavGraphBuilder.authGraph(
                 }
             )
         ) { backStackEntry ->
+
+            // Leemos el argumento `start` de la entrada de navegación
             val start = backStackEntry.arguments?.getString(AuthRoutes.ARG_START)
                 ?: AuthRoutes.START_LOGIN
 
+            // Determinamos el destino final según el valor de `start`.
             val target = when (start) {
                 AuthRoutes.START_REGISTER -> AuthDestinations.REGISTER
                 else -> AuthDestinations.LOGIN
             }
 
-            // Side-effect de navegación (evita navegar durante composición).
+            // Navegamos con efecto lateral (no durante composición).
             LaunchedEffect(target) {
                 navController.navigate(target) {
-                    // Quita ENTRY del back stack.
+                    // Sacamos ENTRY del back stack: no volveremos a esta pseudo-ruta.
                     popUpTo(AuthRoutes.ENTRY) { inclusive = true }
-                    launchSingleTop = true
+                    launchSingleTop = true  // evita duplicados en el stack
                 }
             }
         }
 
+        // ──────────────────────────────────────────────────────────────
         // LOGIN
+        // ──────────────────────────────────────────────────────────────
         composable(AuthDestinations.LOGIN) {
             val vm: AuthViewModel = hiltViewModel()
             LoginScreen(
                 logoRes = R.drawable.ic_logo,
+
+                // Al autenticar con éxito, vamos al grafo HOME y limpiamos AUTH del back stack.
                 onAuthenticated = {
                     navController.navigate(Graph.HOME) {
                         // Limpia todo el subgrafo de Auth.
                         popUpTo(Graph.AUTH) { inclusive = true }
                         launchSingleTop = true
-                        // restoreState solo tiene efecto si previamente se guardó estado con saveState.
+                        // restoreState permite volver a un estado previo si estaba guardado.
                         restoreState = true
                     }
                 },
+
+                // Enlace para ir a la pantalla de registro.
                 onGoToRegister = { navController.navigate(AuthDestinations.REGISTER) },
+
+                // Acceso como invitado → notifica al VM y navega a HOME.
                 onContinueAsGuest = {
                     vm.continueAsGuest()
                     navController.navigate(Graph.HOME) {
@@ -81,10 +99,15 @@ fun NavGraphBuilder.authGraph(
             )
         }
 
+        // ──────────────────────────────────────────────────────────────
         // REGISTER
+        // ──────────────────────────────────────────────────────────────
         composable(AuthDestinations.REGISTER) {
             RegisterScreen(
                 logoRes = R.drawable.ic_logo,
+
+                // Botón "volver al login": intentamos hacer popBackStack.
+                // Si no está en el back stack (caso raro), navegamos de nuevo a LOGIN.
                 onBackToLogin = {
                     val popped = navController.popBackStack(
                         AuthDestinations.LOGIN,

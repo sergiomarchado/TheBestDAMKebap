@@ -17,18 +17,18 @@ import kotlinx.coroutines.launch
  * ViewModel de la portada de Home (HomeStartScreen).
  *
  * Responsabilidades:
- * - Observar el usuario actual (invitado/registrado).
- * - Combinar perfil + direcciones + preferencias (modo/dirección elegida).
- * - Exponer un UiState inmutable y eventos one-shot (navegación/avisos).
- * - Recordar última selección (modo / addressId) con SavedStateHandle.
+ * - Observar usuario actual (invitado/registrado).
+ * - Combinar perfil + direcciones + preferencias locales (modo / dirección elegida).
+ * - Exponer [UiState] inmutable y eventos one-shot (navegación / avisos).
+ * - Recordar selecciones con [SavedStateHandle] para sobrevivir recreaciones.
  *
  * Notas:
- * - No aplicamos distinctUntilChanged() sobre StateFlow (operator fusion).
- * - Las promos se sirven como lista estática para no recalcular/emitir de más.
+ * - `currentUser` se reduce a cambios de `uid` para evitar trabajo innecesario.
+ * - Las promos se sirven como lista estática (no recalculada en cada emisión).
  */
 @HiltViewModel
 class HomeStartViewModel @Inject constructor(
-    private val auth: AuthRepository,
+    auth: AuthRepository,
     private val addresses: AddressRepository,
     private val profiles: ProfileRepository,
     private val savedState: SavedStateHandle
@@ -75,7 +75,6 @@ class HomeStartViewModel @Inject constructor(
         auth.currentUser.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     // ───────── Preferencias ligeras (sobreviven a recreación de proceso) ─────────
-
     private val modeFlow: StateFlow<Mode> =
         savedState.getStateFlow(KEY_MODE, Mode.DELIVERY)
 
@@ -83,7 +82,6 @@ class HomeStartViewModel @Inject constructor(
         savedState.getStateFlow(KEY_SELECTED_ID, null)
 
     // ───────── Promos (estáticas para no recalcular en cada emisión) ─────────
-
     private val promosStatic: List<Promo> = listOf(
         Promo("p1", "Promo1", "promos/promo2x1durumpollo.webp"),
         Promo("p2", "Promo2", "promos/promoenviogratis.webp"),

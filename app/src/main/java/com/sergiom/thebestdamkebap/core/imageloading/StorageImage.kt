@@ -18,15 +18,21 @@ import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.tasks.await
 
 /**
- * Carga imágenes de Firebase Storage con:
- *  - Cache propia (memoria) path -> downloadUrl para evitar repetir getDownloadUrl().
- *  - Cache de Coil (memoria + disco) basada en la URL.
- *  - Retry automático si la URL caduca (invalidación + nuevo resolve).
+ * Muestra una imagen alojada en **Firebase Storage** utilizando:
  *
- * Estados:
- *  - null   -> loading (resolviendo URL)
- *  - ""     -> error resolviendo URL (muestra placeholder)
- *  - "http" -> URL lista: SubcomposeAsyncImage con caching de Coil
+ * - **Cache propia en memoria** (path -> downloadUrl) para evitar repetir `getDownloadUrl()`.
+ * - **Cache de Coil** (memoria + disco) basada en la URL resuelta.
+ * - **Reintento automático** si la URL caduca (invalidación y nueva resolución).
+ *
+ * Estados manejados durante la carga de la URL:
+ * - `null`  → cargando (resolviendo la URL firmada).
+ * - `""`    → error al resolver la URL (se muestra placeholder de error).
+ * - `"http…"` → URL lista: se delega la carga de la imagen a `SubcomposeAsyncImage` (Coil).
+ *
+ * @param ref Referencia a un objeto de Firebase Storage (p. ej. `images/123.jpg`).
+ * @param contentDescription Descripción accesible de la imagen.
+ * @param modifier Modificadores de Compose para el contenedor de imagen.
+ * @param contentScale Cómo se escala el contenido dentro del espacio disponible.
  */
 @Composable
 internal fun StorageImage(
@@ -35,41 +41,39 @@ internal fun StorageImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop
 ) {
-    var retryKey by remember(ref.path) { mutableIntStateOf(0) }
+    // Clave robusta por si hay multibucket (siempre existe ref.bucket)
+    val cacheKey = remember(ref) { "${ref.bucket}/${ref.path}" }
 
-    // 1) Cache hit inmediato si existe
-    val cached = remember(ref.path, retryKey) { StorageUrlMemoryCache.get(ref.path) }
+    var retryKey by remember(cacheKey) { mutableIntStateOf(0) }
 
-    // 2) Resolver una sola vez por path (o tras retry)
-    val urlState = produceState(initialValue = cached, ref.path, retryKey) {
+    // 1) Cache hit inmediato (memoria propia)
+    val cached = remember(cacheKey, retryKey) { StorageUrlMemoryCache.get(cacheKey) }
+
+    // 2) Resolver URL firmada si no está en cache o tras reintento
+    val urlState = produceState(initialValue = cached, cacheKey, retryKey) {
         if (cached != null) return@produceState
-        // Si falla la resolución de URL, dejamos "" para mostrar placeholder de error.
         value = try {
-            ref.downloadUrl.await().toString().also { StorageUrlMemoryCache.put(ref.path, it) }
+            ref.downloadUrl.await().toString().also { StorageUrlMemoryCache.put(cacheKey, it) }
         } catch (_: Throwable) {
             ""
         }
     }
 
     when (val u = urlState.value) {
-        null -> Box(modifier, contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        "" -> Box(modifier, contentAlignment = Alignment.Center) {
-            Text("No se pudo cargar la imagen")
-        }
+        null -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        ""   -> Box(modifier, contentAlignment = Alignment.Center) { Text("No se pudo cargar la imagen") }
         else -> SubcomposeAsyncImage(
-            model = u, // URL https estable → Coil cachea memoria+disco
+            model = u,
             contentDescription = contentDescription,
             contentScale = contentScale,
             modifier = modifier,
             loading = {
                 Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             },
-            error = {
-                // Si la URL dejó de valer (token rotado, 401/403...), invalida y reintenta:
-                StorageUrlMemoryCache.invalidate(ref.path)
-                retryKey++ // fuerza nuevo resolve y nueva carga
+            // 3) Reintento seguro: invalidamos y re-resolvemos fuera del árbol de composición
+            onError = {
+                StorageUrlMemoryCache.invalidate(cacheKey)
+                retryKey++
             }
         )
     }
