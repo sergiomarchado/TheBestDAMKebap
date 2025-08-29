@@ -13,8 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import coil.compose.SubcomposeAsyncImage
 import com.google.firebase.storage.StorageReference
+import com.sergiom.thebestdamkebap.R
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -61,7 +63,11 @@ internal fun StorageImage(
 
     when (val u = urlState.value) {
         null -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        ""   -> Box(modifier, contentAlignment = Alignment.Center) { Text("No se pudo cargar la imagen") }
+        ""   -> Box(modifier, contentAlignment = Alignment.Center) {
+            Text(
+                text= stringResource(R.string.storage_image_could_not_be_loaded)
+            )
+        }
         else -> SubcomposeAsyncImage(
             model = u,
             contentDescription = contentDescription,

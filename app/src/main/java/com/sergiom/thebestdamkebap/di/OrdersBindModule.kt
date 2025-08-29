@@ -11,6 +11,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class OrdersBindModule {
+    @Suppress("unused")
     @Binds @Singleton
     abstract fun bindOrdersRepository(impl: FirebaseOrdersRepository): OrdersRepository
 }

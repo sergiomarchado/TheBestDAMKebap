@@ -6,6 +6,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
@@ -13,43 +15,48 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.ArrowDropUp
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
+
 /**
- * Barra superior de **Home** (Material 3) con:
- * - Logo a la izquierda (si [`logoRes`] no es nulo).
- * - Píldora de usuario centrada (icono + nombre + flecha) que abre un **menú contextual**
- *   con acciones de sesión (Iniciar sesión / Registrarse / Cerrar sesión).
- * - Botón hamburguesa a la derecha para abrir el **drawer**.
+ * Barra superior de **Home** (Material 3).
  *
- * Decisiones de diseño:
- * - Altura personalizada (82.dp) para alojar un logo alto (62.dp).
- * - Línea inferior dibujada con `drawBehind` para separar visualmente.
- * - Píldora con fondo semitransparente sobre `onBackground` para contraste suave.
+ * Objetivo clave: **altura constante** (82.dp) en todos los dispositivos.
+ * - Evitamos que el TopAppBar sume la status bar: `windowInsets = WindowInsets(0.dp)`.
+ * - Añadimos un Spacer previo con `windowInsetsTopHeight(WindowInsets.statusBars)`
+ *   para respetar el área segura sin alterar la altura de la barra.
  *
- * Accesibilidad:
- * - Los iconos **no esenciales** usan `contentDescription = null` al acompañarse de texto.
- * - El botón de menú sí expone `contentDescription` (“Abrir menú”).
+ * Características:
+ * - Logo a la izquierda (si `logoRes` != null).
+ * - Píldora central con nombre de usuario y menú contextual (login/registro/cerrar sesión).
+ * - Botón de menú (drawer) a la derecha.
+ * - Línea inferior dibujada para separar visualmente.
  *
- * Internacionalización:
- * - Los textos visibles (“Logo”, “Iniciar sesión”, “Registrarse”, “Cerrar sesión”, “Abrir menú”)
- *   deberían residir en `strings.xml` (se mantienen inline por compatibilidad).
- *
- * @param logoRes Recurso opcional del logo (izquierda).
- * @param userLabel Etiqueta del usuario mostrada en la píldora (p. ej., “Invitado” o nombre/email).
- * @param userIsGuest `true` si el usuario es invitado (muestra acciones de login/registro).
- * @param onOpenLogin Callback al seleccionar “Iniciar sesión”.
- * @param onOpenRegister Callback al seleccionar “Registrarse”.
- * @param onSignOut Callback al seleccionar “Cerrar sesión”.
- * @param onMenuClick Callback del botón hamburguesa (abrir drawer).
- * @param modifier Modificador para personalización externa del `TopAppBar`.
+ * Accesibilidad / i18n:
+ * - `contentDescription` del logo y del botón de menú desde `strings.xml`.
+ * - El resto de iconos contextuales van con `null` al acompañarse de texto.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,15 +70,18 @@ fun HomeTopBar(
     onSignOut: () -> Unit = {},
     onMenuClick: () -> Unit = {},
 ) {
-    // Estado local del menú de usuario (abierto/cerrado)
     var userMenuOpen by remember { mutableStateOf(false) }
 
     Column {
+        // 1) Empuja el contenido por debajo de la status bar SIN afectar a la altura del TopBar.
+        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+
+        // 2) TopBar de altura constante: no aplicamos insets aquí.
         TopAppBar(
+            windowInsets = WindowInsets(0.dp),   // ← clave para altura fija
             modifier = modifier
-                .padding(top = 16.dp, bottom = 6.dp)
-                .height(82.dp) // barra algo más alta para alojar bien el logo de 62.dp
-                // Línea inferior sutil (separador)
+                .height(82.dp)
+                // Línea inferior sutil (puedes quitar la HorizontalDivider de abajo si prefieres solo esta)
                 .drawBehind {
                     val y = size.height - 1f
                     drawLine(
@@ -81,12 +91,13 @@ fun HomeTopBar(
                         strokeWidth = 1f
                     )
                 },
-            // IZQUIERDA: logo grande centrado verticalmente
+
+            /* IZQUIERDA: logo grande */
             navigationIcon = {
                 if (logoRes != null) {
                     Image(
                         painter = painterResource(id = logoRes),
-                        contentDescription = "Logo",
+                        contentDescription = stringResource(R.string.home_topbar_logo_cd),
                         modifier = Modifier
                             .padding(start = 16.dp)
                             .height(62.dp)
@@ -96,14 +107,14 @@ fun HomeTopBar(
                     Spacer(Modifier.width(16.dp))
                 }
             },
-            // CENTRO: píldora usuario (icono + texto + flecha)
+
+            /* CENTRO: píldora con usuario + flecha (abre menú) */
             title = {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     if (!userLabel.isNullOrBlank()) {
-                        // Anclamos el menú a ESTA caja para que abra justo debajo.
                         Box(
                             modifier = Modifier
                                 .background(
@@ -121,7 +132,7 @@ fun HomeTopBar(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(Modifier.width(6.dp))
-                                Text(
+                                androidx.compose.material3.Text(
                                     text = userLabel,
                                     style = MaterialTheme.typography.titleSmall,
                                     color = Color.White,
@@ -137,24 +148,23 @@ fun HomeTopBar(
                                 )
                             }
 
-                            // Menú desplegable anclado a la píldora
                             DropdownMenu(
                                 expanded = userMenuOpen,
                                 onDismissRequest = { userMenuOpen = false }
                             ) {
                                 if (userIsGuest) {
                                     DropdownMenuItem(
-                                        text = { Text("Iniciar sesión") },
+                                        text = { androidx.compose.material3.Text(stringResource(R.string.home_topbar_sign_in)) },
                                         onClick = { userMenuOpen = false; onOpenLogin() }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Registrarse") },
+                                        text = { androidx.compose.material3.Text(stringResource(R.string.home_topbar_register)) },
                                         onClick = { userMenuOpen = false; onOpenRegister() }
                                     )
                                 } else {
                                     DropdownMenuItem(
                                         leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Logout, null) },
-                                        text = { Text("Cerrar sesión") },
+                                        text = { androidx.compose.material3.Text(stringResource(R.string.home_topbar_sign_out)) },
                                         onClick = { userMenuOpen = false; onSignOut() }
                                     )
                                 }
@@ -163,17 +173,20 @@ fun HomeTopBar(
                     }
                 }
             },
-            // DERECHA: hamburguesa un poco más grande
+
+            /* DERECHA: botón de menú (drawer) */
             actions = {
                 IconButton(onClick = onMenuClick) {
                     Icon(
                         imageVector = Icons.Outlined.Menu,
-                        contentDescription = "Abrir menú",
-                        modifier = Modifier.size(48.dp), // ↑ antes 28.dp
+                        contentDescription = stringResource(R.string.home_topbar_open_menu_cd),
+                        modifier = Modifier.size(40.dp), // 40 encaja mejor en 82.dp que 48
                         tint = Color.White
                     )
                 }
             },
+
+            /* Colores del AppBar */
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background,
                 titleContentColor = Color.White,
@@ -181,8 +194,8 @@ fun HomeTopBar(
                 actionIconContentColor = Color.White
             )
         )
-        HorizontalDivider(Modifier, 2.dp, DividerDefaults.color)
 
+        // Si prefieres solo la línea dibujada en drawBehind, comenta esta Divider.
+        HorizontalDivider(thickness = 2.dp, color = DividerDefaults.color)
     }
-
 }

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import com.sergiom.thebestdamkebap.navigation.AppNavHost
 import com.sergiom.thebestdamkebap.ui.theme.TheBestDAMKebapTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,7 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
  * el contenido no quede detrás de las barras del sistema.
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

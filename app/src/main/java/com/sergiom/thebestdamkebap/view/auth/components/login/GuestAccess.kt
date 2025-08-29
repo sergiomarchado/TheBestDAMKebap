@@ -10,14 +10,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun GuestAccess(onClick: () -> Unit, enabled: Boolean = true) {
     TextButton(onClick = onClick, enabled = enabled) {
         Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(6.dp))
-        Text("Acceder como invitado", color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.login_guest_access_cta), color = MaterialTheme.colorScheme.primary)
     }
 }
 

@@ -10,7 +10,12 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.sergiom.thebestdamkebap.core.imageloading.StorageUrlMemoryCache
+import com.sergiom.thebestdamkebap.core.localemanager.LocaleManager
+import com.sergiom.thebestdamkebap.domain.settings.AppSettingsRepository
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
 
 /**
  * # TheBestDamKebapApp
@@ -35,6 +40,11 @@ import dagger.hilt.android.HiltAndroidApp
 @HiltAndroidApp
 class TheBestDamKebapApp : Application(), ImageLoaderFactory {
 
+    // Inyectamos ajustes y aplicador de locales para el idioma.
+    @Inject lateinit var settings: AppSettingsRepository
+    @Inject
+    lateinit var localeManager: LocaleManager
+
     /// Detecta si la app es "debuggable" (equivale a BuildConfig.DEBUG pero sin depender de él).
     private val isDebugBuild: Boolean by lazy {
         (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -58,6 +68,10 @@ class TheBestDamKebapApp : Application(), ImageLoaderFactory {
 
         // Registra la factory: los SDKs de Firebase adjuntarán tokens automáticamente en las peticiones.
         FirebaseAppCheck.getInstance().installAppCheckProviderFactory(factory)
+
+        // Aplica el idioma guardado (null => seguir el sistema)
+        val savedTag: String? = runBlocking { settings.languageTag.first() }
+        localeManager.apply(savedTag)
     }
 
     // Provee el ImageLoader global que Coil utilizará por defecto.

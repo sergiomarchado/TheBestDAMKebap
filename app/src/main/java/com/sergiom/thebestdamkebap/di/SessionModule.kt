@@ -11,6 +11,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SessionModule {
+    @Suppress("unused")
     @Binds @Singleton
     abstract fun bindOrderSessionRepository(
         impl: OrderSessionRepositoryImpl

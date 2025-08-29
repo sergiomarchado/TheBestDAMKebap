@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
     if (logoRes != null) {
         Image(
             painter = painterResource(id = logoRes),
-            contentDescription = "Logo de DAM Burger",
+            contentDescription = "Logo The Best DAM Kebap",
             modifier = Modifier
                 .size(250.dp)
                 .clip(shapes.medium)

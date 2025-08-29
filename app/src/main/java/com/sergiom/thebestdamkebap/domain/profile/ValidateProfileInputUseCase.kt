@@ -2,31 +2,23 @@ package com.sergiom.thebestdamkebap.domain.profile
 
 import java.util.Calendar
 
-/**
- * ValidateProfileInputUseCase
- *
- * Valida y **sanea** los campos del perfil antes de guardarlos.
- *
- * Reglas actuales:
- * - Nombre: máximo 50 caracteres.
- * - Apellidos: máximo 60 caracteres.
- * - Teléfono (ES): opcional; si se informa, deben quedar **exactamente 9 dígitos** tras normalizar.
- *   (Se admite entrada con prefijo país `+34` o `34`: se elimina antes de validar.)
- * - Fecha de nacimiento: no futura y edad mínima de 13 años.
- *
- * Sugerencia de uso:
- * - Llamar a `invoke(...)` con los valores del formulario.
- * - Si `result.valid` es `true`, usar `result.sanitized` para persistir.
- * - Si hay errores, mostrar `result.errors` en los campos correspondientes.
- */
 class ValidateProfileInputUseCase {
+
+    /** Códigos de error neutrales (sin texto/UI). */
+    enum class ProfileError {
+        GIVEN_NAME_TOO_LONG,
+        FAMILY_NAME_TOO_LONG,
+        PHONE_INVALID_ES,
+        BIRTH_FUTURE,
+        BIRTH_AGE_MIN_13,
+    }
 
     /** Errores por campo (null = sin error). */
     data class Errors(
-        val givenName: String? = null,
-        val familyName: String? = null,
-        val phone: String? = null,
-        val birthDate: String? = null
+        val givenName: ProfileError? = null,
+        val familyName: ProfileError? = null,
+        val phone: ProfileError? = null,
+        val birthDate: ProfileError? = null
     ) {
         val hasAny get() =
             givenName != null || familyName != null || phone != null || birthDate != null
@@ -36,7 +28,7 @@ class ValidateProfileInputUseCase {
     data class Sanitized(
         val givenName: String?,       // null si vacío/solo espacios
         val familyName: String?,      // idem
-        val phoneNormalized: String?, // solo 9 dígitos (ES) o null si vacío
+        val phoneNormalized: String?, // 9 dígitos (ES) o null si vacío
         val birthDateMillis: Long?    // null si se borra o no se estableció
     )
 
@@ -48,57 +40,48 @@ class ValidateProfileInputUseCase {
         val valid get() = !errors.hasAny
     }
 
-    /**
-     * Ejecuta la validación+saneado.
-     *
-     * @param givenName Nombre (puede venir con espacios).
-     * @param familyName Apellidos (puede venir con espacios).
-     * @param phoneRaw Teléfono tal como lo teclea el usuario (se permiten espacios, guiones, `+34`...).
-     * @param birthDateMillis Fecha de nacimiento (millis desde epoch) o null.
-     */
     operator fun invoke(
         givenName: String?,
         familyName: String?,
         phoneRaw: String?,
         birthDateMillis: Long?
     ): Result {
-        // 1) Trims básicos
+        // 1) Trims
         val name = givenName?.trim().orEmpty()
         val fam  = familyName?.trim().orEmpty()
 
-        // 2) Normalización de teléfono:
-        //    - Quitamos todo excepto dígitos.
-        //    - Si empieza por "34" y tiene 11 dígitos (ej. "+34 612..." → "34612..."), quitamos el prefijo país.
+        // 2) Normalizar teléfono:
+        //    - Solo dígitos
+        //    - Si empieza por "34" y tiene 11 dígitos (p.ej. +34 612...), quitamos el prefijo
         val digitsOnly = phoneRaw.orEmpty().filter { it.isDigit() }
         val phoneNormalized =
             if (digitsOnly.length == 11 && digitsOnly.startsWith("34")) digitsOnly.drop(2) else digitsOnly
 
         val now = System.currentTimeMillis()
 
-        var eName: String? = null
-        var eFam: String?  = null
-        var ePhone: String? = null
-        var eBirth: String? = null
+        var eName: ProfileError? = null
+        var eFam: ProfileError?  = null
+        var ePhone: ProfileError? = null
+        var eBirth: ProfileError? = null
 
-        // 3) Reglas de longitud de texto
-        if (name.length > 50) eName = "Máximo 50 caracteres"
-        if (fam.length  > 60) eFam  = "Máximo 60 caracteres"
+        // 3) Reglas
+        if (name.length > 50) eName = ProfileError.GIVEN_NAME_TOO_LONG
+        if (fam.length  > 60) eFam  = ProfileError.FAMILY_NAME_TOO_LONG
 
-        // 4) Teléfono ES: si se informa, deben ser 9 dígitos
+        // 4) Teléfono ES: si se informa, deben ser exactamente 9 dígitos
         if (phoneNormalized.isNotEmpty() && phoneNormalized.length != 9) {
-            ePhone = "Debe tener 9 dígitos (España)"
+            ePhone = ProfileError.PHONE_INVALID_ES
         }
 
         // 5) Fecha: no futura y ≥ 13 años
         if (birthDateMillis != null) {
-            if (birthDateMillis > now) {
-                eBirth = "La fecha no puede ser futura"
-            } else if (!isAtLeastYearsOld(birthDateMillis, 13)) {
-                eBirth = "Debes tener al menos 13 años"
+            eBirth = when {
+                birthDateMillis > now -> ProfileError.BIRTH_FUTURE
+                !isAtLeastYearsOld(birthDateMillis, 13) -> ProfileError.BIRTH_AGE_MIN_13
+                else -> null
             }
         }
 
-        // 6) Saneado final (strings vacíos → null)
         val sanitized = Sanitized(
             givenName = name.ifBlank { null },
             familyName = fam.ifBlank { null },
@@ -117,7 +100,7 @@ class ValidateProfileInputUseCase {
         )
     }
 
-    /** Comprueba si `birthMillis` corresponde a al menos `years` años de edad. */
+    /** ≥ `years` años. */
     @Suppress("SameParameterValue")
     private fun isAtLeastYearsOld(birthMillis: Long, years: Int): Boolean {
         val birth = Calendar.getInstance().apply { timeInMillis = birthMillis }

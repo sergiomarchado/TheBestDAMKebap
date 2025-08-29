@@ -6,21 +6,23 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.firestore.FirebaseFirestore
+import com.sergiom.thebestdamkebap.core.localemanager.LocaleManager
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.cart.CartRepository
 import com.sergiom.thebestdamkebap.domain.order.OrderSessionRepository
+import com.sergiom.thebestdamkebap.domain.settings.AppSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -28,7 +30,10 @@ class SettingsViewModel @Inject constructor(
     private val cart: CartRepository,
     private val session: OrderSessionRepository,
     private val db: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    // ⬇️ Nuevo: repositorio de ajustes + aplicador de locales
+    private val settings: AppSettingsRepository,
+    private val localeManager: LocaleManager
 ) : ViewModel() {
 
     data class UiState(
@@ -37,7 +42,9 @@ class SettingsViewModel @Inject constructor(
         val email: String? = null,
         val error: String? = null,
         val success: Boolean = false,
-        val needsReauth: Boolean = false
+        val needsReauth: Boolean = false,
+        // ⬇️ Nuevo: idioma actual; null => “Sistema”
+        val languageTag: String? = null
     )
 
     private val _ui = MutableStateFlow(UiState())
@@ -51,14 +58,42 @@ class SettingsViewModel @Inject constructor(
     val events = _events
 
     init {
-        // Refleja el estado de sesión (email si la hay)
+        // Refleja sesión (email/guest) + idioma guardado en ajustes.
         viewModelScope.launch {
-            authRepo.currentUser
-                .map { du -> UiState(isGuest = (du == null), email = du?.email) }
+            combine(
+                authRepo.currentUser,
+                settings.languageTag
+            ) { du, lang ->
+                UiState(
+                    isGuest = (du == null),
+                    email = du?.email,
+                    languageTag = lang
+                )
+            }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
-                .collect { base -> _ui.update { base.copy(loading = it.loading, error = it.error, success = it.success, needsReauth = it.needsReauth) } }
+                .collect { base ->
+                    _ui.update {
+                        base.copy(
+                            loading = it.loading,
+                            error = it.error,
+                            success = it.success,
+                            needsReauth = it.needsReauth
+                        )
+                    }
+                }
         }
     }
+
+    /* ───────── Idioma ───────── */
+
+    /** Cambia idioma: `tagOrNull = null` → “Sistema”. */
+    fun setLanguage(tagOrNull: String?) = viewModelScope.launch {
+        settings.setLanguage(tagOrNull)     // persiste en DataStore
+        localeManager.apply(tagOrNull)      // aplica inmediatamente a la app
+        _ui.update { it.copy(languageTag = tagOrNull) }
+    }
+
+    /* ───────── Borrado de cuenta ───────── */
 
     /** Elimina TODOS los datos del usuario (perfil + direcciones) y luego su cuenta de Auth. */
     fun deleteAccount(confirmPassword: String?) {
@@ -105,18 +140,19 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Borra `/users/{uid}` y su subcolección `addresses`. (No borra pedidos por políticas/rules). */
+    /** Borra `/users/{uid}` y su subcolección `addresses`. (Pedidos NO se borran). */
     private suspend fun purgeUserData(uid: String) {
         val userRef = db.collection("users").document(uid)
-        // 1) Borrar subcolección addresses (documento a documento)
+
+        // 1) Borrar subcolección addresses
         val addrSnap = userRef.collection("addresses").get().await()
         if (!addrSnap.isEmpty) {
             val batch = db.batch()
             addrSnap.documents.forEach { batch.delete(it.reference) }
             batch.commit().await()
         }
-        // 2) Borrar el documento de usuario
+
+        // 2) Borrar documento de usuario
         userRef.delete().await()
-        // NOTA: pedidos no se borran (rules no lo permiten); además es recomendable conservarlos.
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,6 +17,7 @@ import com.sergiom.thebestdamkebap.view.home.start.components.ModeToggle
 import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
+import com.sergiom.thebestdamkebap.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +88,7 @@ fun OrderGate(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Configura tu pedido", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.gate_setup_title), style = MaterialTheme.typography.titleLarge)
 
             ModeToggle(
                 mode = ui.mode,
@@ -115,7 +117,7 @@ fun OrderGate(
                     enabled = ui.canStart && !ui.loading,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large
-                ) { Text("Empezar pedido") }
+                ) { Text(stringResource(R.string.gate_start_order_cta)) }
 
                 TextButton(
                     onClick = {
@@ -123,17 +125,17 @@ fun OrderGate(
                         dismissedThisSession = true
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Solo estoy mirando") }
+                ) { Text(stringResource(R.string.gate_browsing_cta)) }
             }
 
             if (isGuest) {
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = onRequestLogin, modifier = Modifier.weight(1f)) {
-                        Text("Iniciar sesión")
+                        Text(stringResource(R.string.auth_sign_in))
                     }
                     OutlinedButton(onClick = onRequestRegister, modifier = Modifier.weight(1f)) {
-                        Text("Registrarse")
+                        Text(stringResource(R.string.auth_create_account))
                     }
                 }
             }

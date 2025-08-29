@@ -34,9 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
+import com.sergiom.thebestdamkebap.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,12 +65,12 @@ internal fun ConfirmShippingDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Confirmar tu pedido", color = MaterialTheme.colorScheme.primary) },
+        title = { Text(text = stringResource(R.string.checkout_confirm_title), color = MaterialTheme.colorScheme.primary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
                 Text(
-                    "Elige cómo completar tu pedido y revisa la dirección de entrega (si es envío a domicilio).",
+                    stringResource(R.string.checkout_confirm_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -84,7 +86,7 @@ internal fun ConfirmShippingDialog(
                         shape  = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                         colors = segColors,
                         icon   = { Icon(Icons.Outlined.Store, contentDescription = null) },
-                        label  = { Text("Recogida") }
+                        label  = { Text(stringResource(R.string.checkout_mode_pickup)) }
                     )
                     SegmentedButton(
                         selected = selected == OrderMode.DELIVERY,
@@ -102,7 +104,7 @@ internal fun ConfirmShippingDialog(
                                 modifier = Modifier.padding(start = 6.dp)
                             )
                         },
-                        label  = { Text("Envío a domicilio") }
+                        label  = { Text(stringResource(R.string.checkout_mode_delivery)) }
                     )
                 }
 
@@ -110,17 +112,17 @@ internal fun ConfirmShippingDialog(
                 if (selected == OrderMode.DELIVERY) {
                     if (addressId.isNullOrBlank()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("No tienes una dirección seleccionada.", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.checkout_no_address), style = MaterialTheme.typography.bodyMedium)
                             AssistChip(
                                 onClick = onAddAddress,
-                                label = { Text("Añadir dirección") },
+                                label = { Text(stringResource(R.string.checkout_add_address)) },
                                 leadingIcon = { Icon(Icons.Outlined.AddLocationAlt, contentDescription = null) }
                             )
                         }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                "Se entregará en:",
+                                stringResource(R.string.checkout_deliver_to_label),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -141,13 +143,13 @@ internal fun ConfirmShippingDialog(
                                     Icon(Icons.Outlined.LocationOn, contentDescription = null)
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        addressLabel ?: "Cargando dirección...",
+                                        addressLabel ?: stringResource(R.string.checkout_loading_address),
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.weight(1f),
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    TextButton(onClick = onChangeAddress) { Text("Cambiar") }
+                                    TextButton(onClick = onChangeAddress) { Text(stringResource(R.string.checkout_change_address)) }
                                 }
                             }
                         }
@@ -169,9 +171,9 @@ internal fun ConfirmShippingDialog(
             Button(enabled = canProceed, onClick = onProceed) {
                 confirmIcon?.let { Icon(it, contentDescription = null) }
                 if (confirmIcon != null) Spacer(Modifier.width(8.dp))
-                Text("Continuar")
+                Text(stringResource(R.string.checkout_continue))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.checkout_close)) } }
     )
 }

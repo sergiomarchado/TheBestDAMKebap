@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -54,14 +55,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.google.firebase.storage.FirebaseStorage
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.core.imageloading.StorageImage
 import com.sergiom.thebestdamkebap.domain.catalog.Product
 import com.sergiom.thebestdamkebap.domain.menu.Menu
 import com.sergiom.thebestdamkebap.domain.menu.MenuAllowed
 import com.sergiom.thebestdamkebap.domain.menu.MenuGroup
+import com.sergiom.thebestdamkebap.domain.menu.MenuSelectionError
+import com.sergiom.thebestdamkebap.domain.menu.MenuSelections
+import com.sergiom.thebestdamkebap.domain.menu.SelectedProduct
+import com.sergiom.thebestdamkebap.domain.menu.validateMenuSelections
 import com.sergiom.thebestdamkebap.domain.order.OrderMode
 import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
 import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
+import com.sergiom.thebestdamkebap.view.products.components.utils.asText
 
 data class MenuSelection(
     val menuId: String,
@@ -83,26 +90,24 @@ fun MenuBuilderDialog(
     onConfirm: (MenuSelection) -> Unit,
 ) {
     // ---- cargar productos permitidos (para nombres/ingredientes) ----
-    val allIds =
-        remember(menu.id) { menu.groups.flatMap {
-            it.allowed.map { a -> a.productId } }
-            .distinct()}
-    var products by remember(menu.id) {
-        mutableStateOf<Map<String, Product>>(emptyMap())
+    val allIds = remember(menu.id) {
+        menu.groups.flatMap { it.allowed.map { a -> a.productId } }.distinct()
     }
+    var products by remember(menu.id) { mutableStateOf<Map<String, Product>>(emptyMap()) }
+
     LaunchedEffect(allIds) {
         products =
-            if (allIds.isEmpty()) emptyMap() else loadProductsByIds(allIds).associateBy { it.id }
+            if (allIds.isEmpty()) emptyMap()
+            else loadProductsByIds(allIds).associateBy { it.id }
     }
 
     // ---- selección por grupo (defaults) ----
     var selections by remember(menu.id) {
         mutableStateOf(
             menu.groups.associate { g ->
-                val defaults =
-                    g.allowed.filter { it.default }.map {
-                        MenuSelection.Selection(it.productId)
-                    }
+                val defaults = g.allowed.filter { it.default }.map {
+                    MenuSelection.Selection(it.productId)
+                }
                 g.id to defaults
             }
         )
@@ -129,6 +134,11 @@ fun MenuBuilderDialog(
         }
     }
     val totalLabel = totalCents.toPriceLabel()
+
+    // Errores de validación (min/max y opciones permitidas) en dominio
+    val selectionErrors = remember(menu, selections) {
+        validateMenuSelections(menu, selections.toDomain())
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -162,9 +172,7 @@ fun MenuBuilderDialog(
                     ) {
                         val path = menu.imagePath
                         if (!path.isNullOrBlank()) {
-                            val ref = remember(path) {
-                                storage.reference.child(path)
-                            }
+                            val ref = remember(path) { storage.reference.child(path) }
                             StorageImage(
                                 ref = ref,
                                 contentDescription = menu.name,
@@ -185,10 +193,8 @@ fun MenuBuilderDialog(
                                 .fillMaxSize()
                                 .background(
                                     Brush.verticalGradient(
-                                        0f to MaterialTheme
-                                            .colorScheme.primary.copy(alpha = 0.85f),
-                                        0.6f to MaterialTheme
-                                            .colorScheme.primary.copy(alpha = 0.55f),
+                                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                        0.6f to MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
                                         1f to Color.Transparent
                                     )
                                 )
@@ -215,7 +221,7 @@ fun MenuBuilderDialog(
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Cerrar",
+                                    contentDescription = stringResource(R.string.ui_close),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
@@ -240,14 +246,20 @@ fun MenuBuilderDialog(
                             )
                         }
                         menu.groups.forEach { group ->
+                            // errores de este grupo (comparando por nombre de grupo)
+                            val groupErrors = selectionErrors.filter {
+                                when (it) {
+                                    is MenuSelectionError.CountOutOfRange -> it.groupName == group.name
+                                    is MenuSelectionError.OptionNotAllowed -> it.groupName == group.name
+                                }
+                            }
+
                             GroupCard(
                                 group = group,
                                 products = products,
                                 current = selections[group.id].orEmpty(),
                                 onPick = { productId ->
-                                    val curr =
-                                        selections[group.id].orEmpty()
-
+                                    val curr = selections[group.id].orEmpty()
                                     val max = group.max.coerceAtLeast(1)
 
                                     val next = if (max == 1) {
@@ -266,14 +278,13 @@ fun MenuBuilderDialog(
                                 },
                                 onCustomize = { productId ->
                                     customizing = group.id to productId
-                                }
+                                },
+                                errors = groupErrors
                             )
                         }
                     }
 
-                    HorizontalDivider(
-                        Modifier, DividerDefaults.Thickness, DividerDefaults.color
-                    )
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
                     // ---------- FOOTER ----------
                     Row(
@@ -283,7 +294,7 @@ fun MenuBuilderDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Total",
+                            text = stringResource(R.string.ui_total),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -294,20 +305,14 @@ fun MenuBuilderDialog(
                         )
                     }
 
-                    val enabled = remember(selections) {
-                        menu.groups.all { g ->
-                            val count = selections[g.id].orEmpty().size
-                            count in g.min..g.max
-                        }
-                    }
                     Button(
                         onClick = { onConfirm(MenuSelection(menu.id, selections)) },
-                        enabled = enabled,
+                        enabled = selectionErrors.isEmpty(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp)
                             .height(48.dp)
-                    ) { Text("Añadir menú") }
+                    ) { Text(stringResource(R.string.ui_add_menu)) }
                 }
             }
         }
@@ -341,11 +346,14 @@ private fun GroupCard(
     current: List<MenuSelection.Selection>,
     onPick: (String) -> Unit,
     onCustomize: (String) -> Unit,
+    errors: List<MenuSelectionError>
 ) {
     ElevatedCard(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier
-            .fillMaxWidth()
-            .padding(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = group.name,
@@ -379,25 +387,23 @@ private fun GroupCard(
                         modifier = Modifier
                             .height(48.dp)
                             .defaultMinSize(minWidth = 48.dp),
-                        // 👇 badge “Personalizar” discreto, sobre fondo oscuro, solo cuando procede
+                        // 👇 badge “Personalizar” discreto
                         trailingIcon = if (
-                            selected && allowed.allowIngredientRemoval
-                            && (p?.ingredients?.isNotEmpty() == true)
+                            selected && allowed.allowIngredientRemoval &&
+                            (p?.ingredients?.isNotEmpty() == true)
                         ) {
                             {
-                                val noRipple = remember {
-                                    MutableInteractionSource()
-                                }
+                                val noRipple = remember { MutableInteractionSource() }
                                 Box(
                                     modifier = Modifier
                                         .height(40.dp)
-                                        .defaultMinSize(minWidth = 40.dp)  // ancho mínimo del badge
+                                        .defaultMinSize(minWidth = 40.dp)
                                         .clip(RoundedCornerShape(10.dp))
                                         .background(
                                             color = MaterialTheme.colorScheme.surface,
                                             shape = RoundedCornerShape(24.dp)
                                         )
-                                        .clickable(              // abre personalización
+                                        .clickable(
                                             interactionSource = noRipple,
                                             indication = null
                                         ) { onCustomize(allowed.productId) }
@@ -405,7 +411,7 @@ private fun GroupCard(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "Personalizar",
+                                        stringResource(R.string.ui_customize),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -415,7 +421,6 @@ private fun GroupCard(
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            // ✅ seleccionado en PRIMARY (como querías)
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
@@ -430,13 +435,18 @@ private fun GroupCard(
                 }
             }
 
-            if (current.size < group.min) {
+            // errores localizados del grupo
+            if (errors.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    "Selecciona al menos ${group.min}",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    errors.forEach { e ->
+                        Text(
+                            text = e.asText(), // localizado
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         }
     }
@@ -453,75 +463,31 @@ private fun OutlinedText(
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
-    // Dibuja 8 copias desplazadas (N, S, E, O y diagonales) como "borde"
     val s = stroke
     Box {
-        // contorno
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = -s, y = -s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = s, y = -s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = -s, y = s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = s, y = s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = 0.dp, y = -s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = 0.dp, y = s)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = -s, y = 0.dp)
-        )
-        Text(
-            text,
-            style = style,
-            color = outline,
-            maxLines = maxLines,
-            overflow = overflow,
-            modifier = Modifier.offset(x = s, y = 0.dp)
-        )
-        // relleno
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = -s, y = -s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = s, y = -s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = -s, y = s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = s, y = s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = 0.dp, y = -s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = 0.dp, y = s))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = -s, y = 0.dp))
+        Text(text, style = style, color = outline, maxLines = maxLines, overflow = overflow, modifier = Modifier.offset(x = s, y = 0.dp))
         Text(text, style = style, color = fill, maxLines = maxLines, overflow = overflow)
     }
 }
+
+/* -------------------- mapper selección UI → dominio -------------------- */
+private fun Map<String, List<MenuSelection.Selection>>.toDomain(): MenuSelections =
+    MenuSelections(
+        byGroup = mapValues { (_, list) ->
+            list.map {
+                SelectedProduct(
+                    productId = it.productId,
+                    removedIngredients = it.customization?.removedIngredients ?: emptySet()
+                )
+            }
+        }
+    )
+
+

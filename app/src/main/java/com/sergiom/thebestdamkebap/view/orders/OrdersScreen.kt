@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +29,7 @@ import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.Locale
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 fun OrdersScreen(
@@ -50,7 +52,7 @@ fun OrdersScreen(
             CircularProgressIndicator()
         }
         state.isGuest -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Inicia sesión para ver tus pedidos.")
+            Text(stringResource(R.string.orders_sign_in_hint))
         }
         state.error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(state.error!!, color = MaterialTheme.colorScheme.error)
@@ -61,7 +63,7 @@ fun OrdersScreen(
         ) {
             TitleBar()
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No tienes pedidos todavía.")
+                Text(stringResource(R.string.orders_empty))
             }
         }
         else -> {

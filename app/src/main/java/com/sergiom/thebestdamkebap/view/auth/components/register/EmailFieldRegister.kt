@@ -11,8 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun EmailFieldRegister(
@@ -24,10 +26,10 @@ internal fun EmailFieldRegister(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text("Introduzca su email") },
+        label = { Text(stringResource(R.string.register_email_label)) },
         singleLine = true,
         isError = isError,
-        supportingText = { if (isError) Text("Introduce un email válido") },
+        supportingText = { if (isError) Text(stringResource(R.string.register_email_invalid)) },
         leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = Color.Black) },
         shape = MaterialTheme.shapes.medium,
         colors = registerTextFieldColors(),
@@ -38,4 +40,3 @@ internal fun EmailFieldRegister(
         modifier = modifier.fillMaxWidth()
     )
 }
-

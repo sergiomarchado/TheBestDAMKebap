@@ -7,6 +7,7 @@ import com.sergiom.thebestdamkebap.domain.address.Address as DomainAddress
 import com.sergiom.thebestdamkebap.domain.address.AddressInput as DomainAddressInput
 import com.sergiom.thebestdamkebap.domain.address.AddressRepository
 import com.sergiom.thebestdamkebap.domain.address.ValidateAddressInputUseCase
+import com.sergiom.thebestdamkebap.domain.address.ValidateAddressInputUseCase.AddressError
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,9 +21,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel de **Alta/Edición de Dirección** (usa SOLO tipos de dominio).
- */
 @HiltViewModel
 class AddressEditViewModel @Inject constructor(
     authRepo: AuthRepository,
@@ -42,42 +40,35 @@ class AddressEditViewModel @Inject constructor(
         val province: String = "",
         val postalCode: String = "",
         val notes: String = "",
-        // errores
-        val eStreet: String? = null,
-        val eNumber: String? = null,
-        val eCity: String? = null,
-        val ePostalCode: String? = null,
-        val ePhone: String? = null,
+        // ⚠️ ahora son AddressError?
+        val eStreet: AddressError? = null,
+        val eNumber: AddressError? = null,
+        val eCity: AddressError? = null,
+        val ePostalCode: AddressError? = null,
+        val ePhone: AddressError? = null,
         // flags
         val canSave: Boolean = false,
         val setAsDefault: Boolean = false
     )
 
-    /** Estado de UI consumido por Compose. */
     data class UiState(
         val loading: Boolean = true,
         val isGuest: Boolean = true,
-        val aid: String? = null,            // null = creación; no-null = edición
+        val aid: String? = null,
         val form: FormState = FormState(),
         val error: String? = null,
-        val saved: Boolean = false          // true tras guardar correctamente
+        val saved: Boolean = false
     )
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
-    /** Usuario actual como StateFlow (para consultar uid/email cuando hace falta). */
     private val currentUser: StateFlow<DomainUser?> =
         authRepo.currentUser.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private var currentUid: String? = null
     private var bootstrapped = false
 
-    /**
-     * Inicializa la pantalla una sola vez.
-     * - Si `aid` es null → form vacío validado.
-     * - Si `aid` tiene valor → observa la dirección y precarga datos.
-     */
     fun bootstrap(aid: String?) {
         if (bootstrapped) return
         bootstrapped = true
@@ -114,22 +105,12 @@ class AddressEditViewModel @Inject constructor(
         }
     }
 
-    /* ─────────── Intents del formulario ─────────── */
-
-    /** Aplica cambios al form, revalida y limpia errores globales. */
     fun edit(transform: FormState.() -> FormState) {
         _ui.update { st -> st.copy(form = transform(st.form).revalidated(), saved = false, error = null) }
     }
 
-    /** Marca/desmarca “establecer como predeterminada”. */
     fun toggleDefault(v: Boolean) = edit { copy(setAsDefault = v) }
 
-    /**
-     * Guarda si el formulario es válido.
-     * - Normaliza y valida con el caso de uso de dominio.
-     * - `upsertAddress()` (merge); si es nueva, devuelve el `id` creado.
-     * - Si procede, marca como predeterminada.
-     */
     fun save(onDone: (String) -> Unit) {
         val uid = currentUid ?: run {
             _ui.update { it.copy(error = "Debes iniciar sesión") }
@@ -175,9 +156,6 @@ class AddressEditViewModel @Inject constructor(
         }
     }
 
-    /* ─────────── Privados ─────────── */
-
-    // Mapper de dominio → formulario
     private fun DomainAddress.toForm() = FormState(
         label = label.orEmpty(),
         recipientName = recipientName.orEmpty(),
@@ -191,7 +169,6 @@ class AddressEditViewModel @Inject constructor(
         notes = notes.orEmpty()
     )
 
-    /** Ejecuta validación de dominio y rellena errores/canSave. */
     private fun FormState.revalidated(): FormState {
         val r = validate(label, recipientName, phone, street, number, floorDoor, city, province, postalCode, notes)
         return copy(

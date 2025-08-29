@@ -18,8 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 fun HomeDrawerContent(
@@ -89,7 +91,7 @@ fun HomeDrawerContent(
 
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(thickness = 1.25.dp, color = dividerCol)
-            SectionTitle("CUENTA")
+            SectionTitle(stringResource(R.string.home_drawer_section_account))
 
             val itemColors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor   = pillBg,
@@ -114,21 +116,21 @@ fun HomeDrawerContent(
                 )
             }
 
-            DrawerItem("Mi perfil", { Icon(Icons.Outlined.Person, null) }, onOpenProfile)
-            DrawerItem("Mis direcciones", { Icon(Icons.Outlined.LocationOn, null) }, onManageAddresses)
-            DrawerItem("Últimos pedidos", { Icon(Icons.Outlined.FolderOpen, null) }, onOpenOrders)
-            DrawerItem("Configuración", { Icon(Icons.Outlined.Settings, null) }, onOpenSettings)
+            DrawerItem(stringResource(R.string.home_drawer_profile),  { Icon(Icons.Outlined.Person, null) }, onOpenProfile)
+            DrawerItem(stringResource(R.string.home_drawer_addresses), { Icon(Icons.Outlined.LocationOn, null) }, onManageAddresses)
+            DrawerItem(stringResource(R.string.home_drawer_recent_orders), { Icon(Icons.Outlined.FolderOpen, null) }, onOpenOrders)
+            DrawerItem(stringResource(R.string.home_drawer_settings), { Icon(Icons.Outlined.Settings, null) }, onOpenSettings)
 
             Spacer(Modifier.weight(1f))
 
             HorizontalDivider(thickness = 1.25.dp, color = dividerCol)
-            SectionTitle("SESIÓN")
+            SectionTitle(stringResource(R.string.home_drawer_section_session))
 
             if (userIsGuest) {
-                DrawerItem("Iniciar sesión", { Icon(Icons.AutoMirrored.Outlined.Login, null) }, onLogin)
-                DrawerItem("Crear cuenta", { Icon(Icons.Outlined.PersonAdd, null) }, onRegister)
+                DrawerItem(stringResource(R.string.home_drawer_sign_in), { Icon(Icons.AutoMirrored.Outlined.Login, null) }, onLogin)
+                DrawerItem(stringResource(R.string.home_drawer_create_account),  { Icon(Icons.Outlined.PersonAdd, null) }, onRegister)
             } else {
-                DrawerItem("Cerrar sesión", { Icon(Icons.AutoMirrored.Outlined.Logout, null) }, onLogout)
+                DrawerItem(stringResource(R.string.home_drawer_sign_out), { Icon(Icons.AutoMirrored.Outlined.Logout, null) }, onLogout)
             }
 
             Spacer(Modifier.height(12.dp))

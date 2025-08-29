@@ -49,12 +49,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.viewmodel.address.AddressListViewModel
 import kotlinx.coroutines.flow.collectLatest
 
@@ -95,7 +97,7 @@ fun AddressListScreen(
     if (ui.isGuest) {
         // Mensaje para invitado (coherente con Profile)
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Inicia sesión para gestionar tus direcciones")
+            Text(text = stringResource(R.string.addresses_sign_in_to_manage))
         }
         return
     }
@@ -114,7 +116,7 @@ fun AddressListScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mis direcciones",
+                    text = stringResource(R.string.addresses_title),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.semantics { heading() }
@@ -131,7 +133,11 @@ fun AddressListScreen(
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Añadir", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = stringResource(R.string.addresses_add),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
 
@@ -150,7 +156,7 @@ fun AddressListScreen(
                     items(items = ui.addresses, key = { it.address.id }) { item ->
                         val cardShape = MaterialTheme.shapes.extraLarge
                         ElevatedCard(
-                            // ✅ Borde en color primario (M3: vía Modifier.border)
+                            // Borde en color primario (M3: vía Modifier.border)
                             modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary), cardShape),
                             shape = cardShape,
                             colors = CardDefaults.elevatedCardColors(
@@ -167,7 +173,7 @@ fun AddressListScreen(
                                 ) {
                                     Text(
                                         (item.address.label ?: item.address.street)
-                                            .ifBlank { "Dirección" },
+                                            .ifBlank { stringResource(R.string.addresses_fallback_label) },
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                     if (item.isDefault) {
@@ -175,7 +181,12 @@ fun AddressListScreen(
                                         AssistChip(
                                             onClick = {},
                                             enabled = false,
-                                            label = { Text(text = "Predeterminada", color = MaterialTheme.colorScheme.onPrimary) },
+                                            label = {
+                                                Text(
+                                                    text = stringResource(R.string.address_default_badge),
+                                                    color = MaterialTheme.colorScheme.onPrimary
+                                                )
+                                            },
                                             colors = AssistChipDefaults.assistChipColors(
                                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                                 labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -207,7 +218,7 @@ fun AddressListScreen(
 
                                 Spacer(Modifier.height(12.dp))
 
-                                // 🔁 Acciones: FlowRow evita que el texto se parta raro
+                                // Acciones: FlowRow evita que el texto se parta raro
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -221,7 +232,11 @@ fun AddressListScreen(
                                     ) {
                                         Icon(Icons.Outlined.Edit, contentDescription = null)
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Editar", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(
+                                            text = stringResource(R.string.addresses_edit),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
 
                                     OutlinedButton(
@@ -232,7 +247,11 @@ fun AddressListScreen(
                                     ) {
                                         Icon(Icons.Outlined.Delete, contentDescription = null)
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Eliminar", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(
+                                            text = stringResource(R.string.addresses_delete),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
 
                                     TextButton(
@@ -244,19 +263,25 @@ fun AddressListScreen(
                                         Icon(Icons.Outlined.StarOutline, contentDescription = null)
                                         Spacer(Modifier.width(6.dp))
                                         Text(
-                                            if (item.isDefault) "Es la predeterminada" else "Hacer predeterminada",
+                                            text=
+                                                if (item.isDefault) stringResource(R.string.addresses_is_default)
+                                                else stringResource(R.string.addresses_make_default),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
 
                                     TextButton(
-                                        onClick = { onSelect(item.address.id) },   // ⬅️ devuelve id seleccionado
+                                        onClick = { onSelect(item.address.id) },   // devuelve id seleccionado
                                         enabled = !ui.loading,
                                         shape = MaterialTheme.shapes.large,
                                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                                     ) {
-                                        Text("Usar esta dirección", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(
+                                            text = stringResource(R.string.addresses_use_this_address),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
                             }

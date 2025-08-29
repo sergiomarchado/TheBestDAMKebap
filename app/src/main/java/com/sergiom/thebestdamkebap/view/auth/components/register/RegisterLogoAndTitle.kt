@@ -34,7 +34,7 @@ internal fun RegisterLogoAndTitle(
         if (logoRes != null) {
             Image(
                 painter = painterResource(id = logoRes),
-                contentDescription = "Logo de DAM Burger",
+                contentDescription = "Logo The Best DAM Kebab",
                 modifier = Modifier
                     .size(160.dp)
                     .clip(shapes.medium)

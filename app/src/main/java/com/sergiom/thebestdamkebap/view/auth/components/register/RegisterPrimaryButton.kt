@@ -10,9 +10,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun RegisterPrimaryButton(
@@ -38,7 +40,7 @@ internal fun RegisterPrimaryButton(
         if (loading) {
             CircularProgressIndicator(strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
         } else {
-            Text("REGISTRAR", fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.authbutton_register), fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -31,19 +31,8 @@ import com.sergiom.thebestdamkebap.view.home.start.OrderGate
 import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
-import com.sergiom.thebestdamkebap.viewmodel.cart.CartViewModel // ⬅ import necesario
+import com.sergiom.thebestdamkebap.viewmodel.cart.CartViewModel
 
-/**
- * Grafo **interno** del flujo Home (NavHost hijo).
- *
- * Qué define:
- * - Pantalla de portada [HomeRoutes.HOME], ofertas, productos (gateado), cuenta, direcciones y carrito.
- * - Aplicación de un **gate** (modo/dirección) antes de entrar en [ProductsScreen].
- *
- * Integración:
- * - Usa un NavController **hijo** (independiente del grafo raíz).
- * - `isGuest` y callbacks `onRequestLogin/Register` permiten a [OrderGate] invocar Auth cuando es necesario.
- */
 @Composable
 fun HomeNavGraph(
     navController: NavHostController,
@@ -130,7 +119,6 @@ fun HomeNavGraph(
             AddressEditScreen(
                 aid = aid,
                 onClose = { savedId ->
-                    // devolver id guardado y volver
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("selectedAddressId", savedId)
@@ -140,7 +128,7 @@ fun HomeNavGraph(
         }
 
         /* ───────── Carrito ───────── */
-        composable(HomeRoutes.CART) {
+        composable(HomeRoutes.CART) { backStackEntry ->
             // Etiquetas de direcciones para render
             val hsVm: HomeStartViewModel = hiltViewModel()
             val homeUi by hsVm.ui.collectAsStateWithLifecycle()
@@ -154,8 +142,9 @@ fun HomeNavGraph(
 
             // Recoger resultado desde Direcciones y fijarlo en la sesión
             val cartVm: CartViewModel = hiltViewModel()
-            // Siempre el handle del entry de CART (no el "current")
-            val cartEntry = remember { navController.getBackStackEntry(HomeRoutes.CART) }
+
+            // ✅ Clave: usar el backStackEntry del propio composable como key de remember
+            val cartEntry = remember(backStackEntry) { backStackEntry }
             val selectedAddrFlow = remember(cartEntry) {
                 cartEntry.savedStateHandle.getStateFlow<String?>("selectedAddressId", null)
             }
@@ -163,9 +152,9 @@ fun HomeNavGraph(
 
             LaunchedEffect(selectedAddrId) {
                 selectedAddrId?.let { id ->
-                    cartVm.setAddress(id) // fija DELIVERY + addressId en OrderSession
-                    navController.currentBackStackEntry!!
-                        .savedStateHandle["selectedAddressId"] = null
+                    cartVm.setAddress(id)
+                    // Limpia la clave en el mismo SavedStateHandle del entry de CART
+                    cartEntry.savedStateHandle["selectedAddressId"] = null
                 }
             }
 

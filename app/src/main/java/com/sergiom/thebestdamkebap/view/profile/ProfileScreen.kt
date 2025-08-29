@@ -17,11 +17,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.viewmodel.profile.ProfileViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
@@ -33,20 +35,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.surfaceColorAtElevation
+import com.sergiom.thebestdamkebap.view.profile.utils.asText
 
-/**
- * ProfileScreen
- *
- * Pantalla de **Mi perfil**.
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Estado del VM y host de snackbars
-    // ─────────────────────────────────────────────────────────────────────────────
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
@@ -63,19 +58,16 @@ fun ProfileScreen(
     // Invitado: placeholder
     if (ui.isGuest) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Inicia sesión para editar tu perfil")
+            Text(stringResource(R.string.profile_sign_in_to_edit))
         }
         return
     }
 
-    // Aliases
     val loading = ui.loading
     val f = ui.form
     val emailReadOnly = ui.email
 
-    // ─────────────────────────────────────────────────────────────────────────────
     // DatePicker (estado local)
-    // ─────────────────────────────────────────────────────────────────────────────
     var showDateDialog by rememberSaveable { mutableStateOf(false) }
 
     val selectablePastDates = remember {
@@ -95,16 +87,13 @@ fun ProfileScreen(
         f.birthDateMillis?.let { dateFmt.format(Date(it)) }.orEmpty()
     }
 
-    // Colores reutilizables para OutlinedTextField (solo UI)
+    // Colores reutilizables para OutlinedTextField
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         focusedLabelColor = MaterialTheme.colorScheme.primary,
         cursorColor = MaterialTheme.colorScheme.primary
     )
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // UI principal
-    // ─────────────────────────────────────────────────────────────────────────────
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbar) }) { padding ->
         Column(
             Modifier
@@ -116,13 +105,12 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Mi perfil",
+                text = stringResource(R.string.profile_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
             )
 
-            // Tarjeta con el formulario
             val cardShape = MaterialTheme.shapes.extraLarge
             ElevatedCard(
                 shape = cardShape,
@@ -137,15 +125,15 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
 
-                    // Email (solo lectura, fuente de verdad es Auth)
+                    // Email (solo lectura)
                     OutlinedTextField(
                         value = emailReadOnly,
                         onValueChange = {},
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.profile_email_label)) },
                         singleLine = true,
                         readOnly = true,
                         enabled = true,
-                        supportingText = { Text("Este es tu email de acceso. No se puede cambiar desde la app.") },
+                        supportingText = { Text(stringResource(R.string.profile_email_hint)) },
                         leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
@@ -156,10 +144,10 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = f.givenName,
                         onValueChange = viewModel::onGivenNameChange,
-                        label = { Text("Nombre") },
+                        label = { Text(stringResource(R.string.profile_name_label)) },
                         singleLine = true,
                         isError = f.eGivenName != null,
-                        supportingText = { f.eGivenName?.let { Text(it) } },
+                        supportingText = { f.eGivenName?.let { Text(it.asText()) } },
                         enabled = !loading,
                         leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
@@ -171,10 +159,10 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = f.familyName,
                         onValueChange = viewModel::onFamilyNameChange,
-                        label = { Text("Apellidos") },
+                        label = { Text(stringResource(R.string.profile_family_label)) },
                         singleLine = true,
                         isError = f.eFamilyName != null,
-                        supportingText = { f.eFamilyName?.let { Text(it) } },
+                        supportingText = { f.eFamilyName?.let { Text(it.asText()) } },
                         enabled = !loading,
                         leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
@@ -182,14 +170,17 @@ fun ProfileScreen(
                         colors = fieldColors
                     )
 
-                    // Teléfono (opcional). Validación básica en el VM.
+                    // Teléfono (opcional)
                     OutlinedTextField(
                         value = f.phone,
                         onValueChange = viewModel::onPhoneChange,
-                        label = { Text("Teléfono") },
+                        label = { Text(stringResource(R.string.profile_phone_label)) },
                         singleLine = true,
                         isError = f.ePhone != null,
-                        supportingText = { Text(f.ePhone ?: "Opcional") },
+                        supportingText = {
+                            if (f.ePhone != null) Text(f.ePhone.asText())
+                            else Text(stringResource(R.string.common_optional))
+                        },
                         enabled = !loading,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         leadingIcon = { Icon(Icons.Outlined.Phone, contentDescription = null) },
@@ -202,17 +193,20 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = birthStr,
                         onValueChange = {},
-                        label = { Text("Fecha de nacimiento") },
+                        label = { Text(stringResource(R.string.profile_birth_label)) },
                         singleLine = true,
                         readOnly = true,
                         isError = f.eBirthDate != null,
                         supportingText = {
-                            if (f.eBirthDate != null) Text(f.eBirthDate)
-                            else Text("Opcional. ¡Nos encantará felicitarte a nuestra manera! 😜🥳")
+                            if (f.eBirthDate != null) Text(f.eBirthDate.asText())
+                            else Text(stringResource(R.string.common_optional))
                         },
                         trailingIcon = {
                             IconButton(onClick = { showDateDialog = true }) {
-                                Icon(Icons.Outlined.CalendarMonth, contentDescription = "Elegir fecha")
+                                Icon(
+                                    Icons.Outlined.CalendarMonth,
+                                    contentDescription = stringResource(R.string.profile_birth_pick)
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -220,13 +214,12 @@ fun ProfileScreen(
                         colors = fieldColors
                     )
 
-                    // Botonera de acciones (fluida en varias líneas si no cabe)
+                    // Botonera
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Guardar cambios (usa validación del VM)
                         FilledTonalButton(
                             onClick = viewModel::onSaveClicked,
                             enabled = !loading && f.canSave,
@@ -238,33 +231,33 @@ fun ProfileScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                         ) {
                             Text(
-                                if (loading) "Guardando..." else "Guardar cambios",
+                                if (loading) stringResource(R.string.profile_saving)
+                                else stringResource(R.string.profile_save),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
 
-                        // Restablecer contraseña (envía email si hay)
                         OutlinedButton(
                             onClick = { viewModel.sendPasswordReset() },
                             enabled = !loading && emailReadOnly.isNotBlank(),
                             shape = MaterialTheme.shapes.large,
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                         ) {
-                            Text("Restablecer contraseña", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                stringResource(R.string.profile_reset_password),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
-                        // Chip “Guardado” (feedback visual)
                         if (ui.saved) {
                             AssistChip(
                                 onClick = {},
                                 enabled = false,
-                                label = { Text("Guardado") },
+                                label = { Text(stringResource(R.string.profile_saved)) },
                                 leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.CheckCircle,
-                                        contentDescription = null
-                                    )
+                                    Icon(Icons.Outlined.CheckCircle, contentDescription = null)
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -279,9 +272,7 @@ fun ProfileScreen(
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
     // Diálogo de selección de fecha
-    // ─────────────────────────────────────────────────────────────────────────────
     if (showDateDialog) {
         DatePickerDialog(
             onDismissRequest = { showDateDialog = false },
@@ -289,9 +280,13 @@ fun ProfileScreen(
                 TextButton(onClick = {
                     viewModel.onBirthDateChange(dateState.selectedDateMillis)
                     showDateDialog = false
-                }) { Text("Aceptar") }
+                }) { Text(stringResource(android.R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDateDialog = false }) { Text("Cancelar") } }
+            dismissButton = {
+                TextButton(onClick = { showDateDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
         ) {
             DatePicker(state = dateState, showModeToggle = false)
         }
@@ -309,3 +304,6 @@ private fun yearsAgo(years: Int): Long {
     cal.set(Calendar.MILLISECOND, 0)
     return cal.timeInMillis
 }
+
+
+

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -20,6 +21,7 @@ import com.sergiom.thebestdamkebap.view.home.components.HomeDrawerContent
 import com.sergiom.thebestdamkebap.view.home.components.HomeNavItem
 import com.sergiom.thebestdamkebap.view.home.components.HomeTopBar
 import kotlinx.coroutines.launch
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Contenedor visual principal de **Home**.
@@ -56,13 +58,17 @@ fun HomeShell(
 ) {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
+    // Tabs superiores (con i18n)
+    val labelHome    = stringResource(R.string.home_tab_dashboard)
+    val labelOffers  = stringResource(R.string.home_tab_offers)
+    val labelProducts= stringResource(R.string.home_tab_products)
 
     // Tabs superiores (memoizadas para evitar recreaciones)
     val items = remember {
         listOf(
-            HomeNavItem(HomeRoutes.HOME, Icons.Outlined.Home, "Inicio"),
-            HomeNavItem(HomeRoutes.OFFERS, Icons.Outlined.LocalOffer, "Ofertas"),
-            HomeNavItem(HomeRoutes.PRODUCTS, Icons.Outlined.RestaurantMenu, "Productos"),
+            HomeNavItem(HomeRoutes.HOME,     Icons.Outlined.Home,          labelHome),
+            HomeNavItem(HomeRoutes.OFFERS,   Icons.Outlined.LocalOffer,    labelOffers),
+            HomeNavItem(HomeRoutes.PRODUCTS, Icons.Outlined.RestaurantMenu,labelProducts),
         )
     }
     val topRoutes = remember { setOf(HomeRoutes.HOME, HomeRoutes.OFFERS, HomeRoutes.PRODUCTS) }
@@ -168,7 +174,7 @@ fun HomeShell(
                         }) {
                             Icon(
                                 imageVector = Icons.Outlined.ShoppingCart,
-                                contentDescription = "Carrito ($cartCount)" // TODO i18n
+                                contentDescription =  stringResource(R.string.home_fab_cart_cd, cartCount)
                             )
                         }
                     }

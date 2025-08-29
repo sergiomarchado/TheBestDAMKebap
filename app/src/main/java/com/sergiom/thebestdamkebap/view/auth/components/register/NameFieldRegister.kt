@@ -11,7 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun NameFieldRegister(
@@ -22,7 +24,7 @@ internal fun NameFieldRegister(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text("Introduzca su nombre (opcional)") },
+        label = { Text(stringResource(R.string.register_name_label_optional)) },
         singleLine = true,
         leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Color.Black) },
         shape = MaterialTheme.shapes.medium,

@@ -15,9 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun PasswordField(
@@ -33,10 +35,12 @@ internal fun PasswordField(
         onValueChange = onValueChange,
         enabled = enabled,
         singleLine = true,
-        label = { Text("Contraseña") },
+        label = { Text(stringResource(R.string.login_password_label)) },
         leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
         trailingIcon = {
-            val cd = if (visible) "Ocultar contraseña" else "Mostrar contraseña"
+            val cd =
+                if (visible) stringResource(R.string.login_password_hide)
+                else stringResource(R.string.login_password_show)
             IconButton(
                 onClick = onToggleVisible
             ) {

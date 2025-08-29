@@ -12,9 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sergiom.thebestdamkebap.domain.catalog.Category
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun CategoryRow(
@@ -23,7 +25,7 @@ internal fun CategoryRow(
     onSelect: (String) -> Unit
 ) {
     Text(
-        text = "Categorías de Productos:",
+        text = stringResource(R.string.products_categories_title),
         style = MaterialTheme.typography.bodyLarge,
         overflow = TextOverflow.Ellipsis,
         color = Color.White,

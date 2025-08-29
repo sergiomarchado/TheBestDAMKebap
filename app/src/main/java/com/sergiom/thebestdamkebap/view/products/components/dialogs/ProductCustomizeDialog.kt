@@ -27,9 +27,11 @@ import com.sergiom.thebestdamkebap.domain.order.ProductCustomization
 import com.sergiom.thebestdamkebap.view.products.components.products.utils.toPriceLabel
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.DialogProperties
+import com.sergiom.thebestdamkebap.R
 
 /**
  * UI de personalización de un producto: permitir quitar ingredientes.
@@ -147,7 +149,7 @@ fun ProductCustomizeDialog(
                         }
 
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Cerrar")
+                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.common_close))
                         }
                     }
 
@@ -162,12 +164,12 @@ fun ProductCustomizeDialog(
                     ) {
                         DisableSelection {
                             Text(
-                                "Personaliza tu producto:",
+                                stringResource(R.string.customize_title),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                "Quita los ingredientes que no quieres",
+                                stringResource(R.string.customize_subtitle),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -175,7 +177,7 @@ fun ProductCustomizeDialog(
 
                         if (product.ingredients.isEmpty()) {
                             Text(
-                                "Este producto no tiene ingredientes personalizables.",
+                                stringResource(R.string.customize_no_ingredients),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -195,12 +197,12 @@ fun ProductCustomizeDialog(
                                         removed.addAll(product.ingredients.filter { it != baseIngredient })
                                     },
                                     enabled = !allRemoved && totalRemovibles > 0,
-                                    label = { Text("Quitar todo") }
+                                    label = { Text(stringResource(R.string.customize_remove_all)) }
                                 )
                                 AssistChip(
                                     onClick = { removed.clear() },
                                     enabled = !noneRemoved,
-                                    label = { Text("Restaurar") }
+                                    label = { Text(stringResource(R.string.customize_restore)) }
                                 )
                                 Spacer(Modifier.weight(1f))
                                 Text(
@@ -269,13 +271,13 @@ fun ProductCustomizeDialog(
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = onDismiss) { Text("Cancelar") }
+                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
                         Spacer(Modifier.weight(1f))
                         Button(
                             onClick = {
                                 onConfirm(ProductCustomization(removedIngredients = removed.toSet()))
                             }
-                        ) { Text("Guardar") }
+                        ) { Text(stringResource(R.string.common_save)) }
                     }
                 }
             }

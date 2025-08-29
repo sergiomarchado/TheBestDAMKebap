@@ -10,8 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun ModeToggle(
@@ -27,7 +29,7 @@ internal fun ModeToggle(
         FilterChip(
             selected = mode == HomeStartViewModel.Mode.DELIVERY,
             onClick = { onChange(HomeStartViewModel.Mode.DELIVERY) },
-            label = { Text("A domicilio") },
+            label = { Text(stringResource(R.string.home_mode_delivery_label)) },
             enabled = enabled,
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -37,7 +39,7 @@ internal fun ModeToggle(
         FilterChip(
             selected = mode == HomeStartViewModel.Mode.PICKUP,
             onClick = { onChange(HomeStartViewModel.Mode.PICKUP) },
-            label = { Text("Para recoger") },
+            label = { Text(stringResource(R.string.home_mode_pickup_label)) },
             enabled = enabled,
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = MaterialTheme.colorScheme.primary,

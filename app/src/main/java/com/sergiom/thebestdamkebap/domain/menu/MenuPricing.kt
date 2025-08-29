@@ -47,17 +47,44 @@ fun computeMenuTotal(menu: Menu, selections: MenuSelections, mode: OrderMode): P
     return PriceBreakdown(base = base, deltas = deltas)
 }
 
-/** Validación básica de selecciones (min/max y opciones permitidas). Devuelve lista de errores. */
-@Suppress("unused")
-fun validateMenuSelections(menu: Menu, selections: MenuSelections): List<String> {
-    val errors = mutableListOf<String>()
+sealed class MenuSelectionError {
+    data class CountOutOfRange(
+        val groupName: String,
+        val min: Int,
+        val max: Int,
+        val actual: Int
+    ) : MenuSelectionError()
+
+    data class OptionNotAllowed(
+        val groupName: String,
+        val productId: String
+    ) : MenuSelectionError()
+}
+
+/** Validación básica de selecciones (min/max y opciones permitidas). */
+fun validateMenuSelections(menu: Menu, selections: MenuSelections): List<MenuSelectionError> {
+    val errors = mutableListOf<MenuSelectionError>()
     menu.groups.forEach { g ->
         val chosen = selections.byGroup[g.id].orEmpty()
+
         if (chosen.size < g.min || chosen.size > g.max) {
-            errors += "Grupo '${g.name}': selecciona entre ${g.min} y ${g.max}."
+            errors += MenuSelectionError.CountOutOfRange(
+                groupName = g.name,
+                min = g.min,
+                max = g.max,
+                actual = chosen.size
+            )
         }
+
         val allowedIds = g.allowed.map { it.productId }.toSet()
-        chosen.forEach { if (it.productId !in allowedIds) errors += "Opción no permitida en '${g.name}'." }
+        chosen.forEach { sel ->
+            if (sel.productId !in allowedIds) {
+                errors += MenuSelectionError.OptionNotAllowed(
+                    groupName = g.name,
+                    productId = sel.productId
+                )
+            }
+        }
     }
     return errors
 }

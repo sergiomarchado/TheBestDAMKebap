@@ -4,6 +4,7 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.domain.auth.AuthRepository
 import com.sergiom.thebestdamkebap.domain.auth.DomainUser
 import javax.inject.Inject
@@ -51,7 +52,7 @@ class FirebaseAuthRepository @Inject constructor(
     /** Login con email y contraseña; devuelve el usuario resultante. */
     override suspend fun signInWithEmail(email: String, password: String): DomainUser {
         val result = auth.signInWithEmailAndPassword(email, password).await()
-        val user = result.user ?: error("No se pudo iniciar sesión.")
+        val user = result.user ?: error(R.string.firebaseauthrepository_not_log_in)
         return user.toDomain()
     }
 
@@ -83,7 +84,7 @@ class FirebaseAuthRepository @Inject constructor(
             user.updateProfile(req).await()
         }
 
-        return user?.toDomain() ?: error("No se pudo registrar usuario.")
+        return user?.toDomain() ?: error(R.string.firebaseauthrepository_registration_failed)
     }
 
     /** Envía correo de restablecimiento de contraseña. */

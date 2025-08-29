@@ -12,8 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun EmailField(
@@ -26,8 +28,14 @@ internal fun EmailField(
         onValueChange = onValueChange,
         enabled = enabled,
         singleLine = true,
-        label = { Text("Email") },
-        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = Color.Black) },
+        label = { Text(stringResource(R.string.login_email_label)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Email,
+                contentDescription = stringResource(R.string.login_email_icon_desc),
+                tint = Color.Black
+            )
+        },
         shape = MaterialTheme.shapes.medium,
         colors = brandedTextFieldColors(),
         keyboardOptions = KeyboardOptions(

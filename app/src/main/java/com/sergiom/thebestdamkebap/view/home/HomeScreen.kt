@@ -6,6 +6,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -20,6 +21,7 @@ import com.sergiom.thebestdamkebap.viewmodel.home.HomeEvent
 import com.sergiom.thebestdamkebap.viewmodel.home.HomeViewModel
 import com.sergiom.thebestdamkebap.viewmodel.order.OrderGateViewModel
 import kotlinx.coroutines.flow.collectLatest
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Shell + orquestación de la sección **Home**.
@@ -51,14 +53,17 @@ fun HomeScreen(
     // Invitado = true si user == null o es anónimo (permite “gatear” en Products)
     val userIsGuest = user?.isAnonymous != false
 
+    // Context para obtener strings fuera de @Composable (en derivedStateOf)
+    val ctx = LocalContext.current
+
     // Etiquetas derivadas del usuario (memorizadas para evitar recomputar en cada recomposición)
     val userLabel by remember(user) {
         derivedStateOf {
             when {
-                userIsGuest -> "Invitado"
+                userIsGuest -> ctx.getString(R.string.common_guest)
                 !user?.name.isNullOrBlank()  -> user?.name!!
                 !user?.email.isNullOrBlank() -> user?.email!!
-                else -> "Usuario"
+                else -> ctx.getString(R.string.common_user)
             }
         }
     }
@@ -106,6 +111,8 @@ fun HomeScreen(
     // Guardamos el NavController interno de Home para navegar al carrito desde el FAB
     var innerNav by remember { mutableStateOf<NavHostController?>(null) }
 
+
+
     // --- Shell + navegación interna ---
     HomeShell(
         logoRes = logoRes,
@@ -143,7 +150,7 @@ fun HomeScreen(
     LoginDialogIfNeeded(
         show = showLoginDialog,
         loading = loading,
-        isGuest = userIsGuest, // ⬅️ NUEVO
+        isGuest = userIsGuest,
         onDismiss = { showLoginDialog = false },
         onConfirm = { email, password -> authVm.signInWithEmail(email.trim(), password) },
         onForgot = { email -> authVm.sendPasswordReset(email) },

@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Pantalla **Carrito**.
@@ -126,10 +128,10 @@ fun CartScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
-                title = { Text(text = "Tu Pedido:", color = MaterialTheme.colorScheme.primary) },
+                title = { Text(text = stringResource(R.string.cart_title), color = MaterialTheme.colorScheme.primary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cart_back_cd))
                     }
                 }
             )
@@ -147,15 +149,17 @@ fun CartScreen(
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f)
                     )
+                    val browsingOnlyError = stringResource(R.string.cart_browsing_only_error)
+                    val selectModeError   = stringResource(R.string.cart_select_mode_error)
                     Button(
                         enabled = state.items.isNotEmpty() && !placing,
                         onClick = {
                             when {
                                 ctx.browsingOnly -> {
-                                    errorMsg = "Estás en modo exploración. Selecciona el modo de pedido para continuar."
+                                    errorMsg = browsingOnlyError
                                 }
                                 ctx.mode == null -> {
-                                    errorMsg = "Selecciona un modo de pedido (Recogida o Envío a domicilio) antes de pagar."
+                                    errorMsg = selectModeError
                                 }
                                 else -> {
                                     viewModel.reconcileAddressIfNeeded()
@@ -163,7 +167,7 @@ fun CartScreen(
                                 }
                             }
                         }
-                    ) { Text("Pagar") }
+                    ) { Text(stringResource(R.string.cart_pay_cta)) }
                 }
             }
         }
@@ -175,7 +179,7 @@ fun CartScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Tu carrito está vacío")
+                Text(stringResource(R.string.cart_empty_state))
             }
         } else {
             LazyColumn(
@@ -246,11 +250,11 @@ fun CartScreen(
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
-            title = { Text("¡Pedido realizado!") },
+            title =  { Text(stringResource(R.string.cart_success_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Tu número de pedido es:",
+                        stringResource(R.string.cart_success_order_number_label),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -268,7 +272,7 @@ fun CartScreen(
                         )
                     }
                     Text(
-                        "Guárdalo por si necesitas consultar el estado.",
+                        stringResource(R.string.cart_success_save_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -278,10 +282,10 @@ fun CartScreen(
                 Button(onClick = {
                     successOrderId = null
                     onGoToOrders(oid)
-                }) { Text("Ver pedido") }
+                }) { Text(stringResource(R.string.cart_view_order_cta)) }
             },
             dismissButton = {
-                TextButton(onClick = { successOrderId = null }) { Text("Cerrar") }
+                TextButton(onClick = { successOrderId = null }) { Text(stringResource(R.string.cart_close)) }
             }
         )
     }
@@ -299,10 +303,10 @@ fun CartScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("No se pudo completar") },
+            title = { Text(stringResource(R.string.cart_error_title)) },
             text  = { Text(msg) },
             confirmButton = {
-                Button(onClick = { errorMsg = null }) { Text("Aceptar") }
+                Button(onClick = { errorMsg = null }) { Text(stringResource(R.string.cart_accept)) }
             }
         )
     }

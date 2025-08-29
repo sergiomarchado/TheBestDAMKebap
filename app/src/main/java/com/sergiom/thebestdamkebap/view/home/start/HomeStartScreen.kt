@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +43,7 @@ import com.sergiom.thebestdamkebap.view.home.start.utils.formatAddressLine
 import com.sergiom.thebestdamkebap.view.home.start.utils.neonGlow
 import com.sergiom.thebestdamkebap.viewmodel.home.homestart.HomeStartViewModel
 import kotlinx.coroutines.flow.collectLatest
+import com.sergiom.thebestdamkebap.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -107,14 +109,14 @@ fun HomeStartScreen(
                 LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             Text(
-                text = "¡Bienvenid@!",
+                text = stringResource(R.string.home_start_welcome),
                 modifier = Modifier.padding(start = 12.dp),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Start,
             )
             Text(
-                text = "Comienza a configurar tu pedido y échale un ojo a las novedades, por supuesto.",
+                text = stringResource(R.string.home_start_intro),
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Start,
@@ -162,22 +164,23 @@ fun HomeStartScreen(
             ) {
                 Text(
                     when {
-                        ui.loading -> "Cargando…"
-                        ui.mode == HomeStartViewModel.Mode.DELIVERY -> "Empezar pedido a domicilio"
-                        else -> "Empezar pedido para recoger"
+                        ui.loading -> stringResource(R.string.common_loading)
+                        ui.mode == HomeStartViewModel.Mode.DELIVERY ->
+                            stringResource(R.string.home_start_cta_delivery)
+                        else -> stringResource(R.string.home_start_cta_pickup)
                     }
                 )
             }
 
             Text(
-                text = "¡PROMOCIONES DEL MES!",
+                text = stringResource(R.string.home_start_promos_title),
                 modifier = Modifier.padding(start = 12.dp),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Start,
             )
             Text(
-                text = "Estas son algunas de las promociones que podrás disfrutar ahora mismo:",
+                text = stringResource(R.string.home_start_promos_intro),
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Start,

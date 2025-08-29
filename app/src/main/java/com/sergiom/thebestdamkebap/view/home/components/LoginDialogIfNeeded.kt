@@ -13,11 +13,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Diálogo reutilizable de **inicio de sesión**.
@@ -66,17 +68,17 @@ fun LoginDialogIfNeeded(
 
     AlertDialog(
         onDismissRequest = { if (!loading) onDismiss() },
-        title = { Text("Iniciar sesión") },
+        title = { Text(stringResource(R.string.auth_sign_in)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.auth_email_label)) },
                     singleLine = true,
                     isError = emailError,
-                    supportingText = { if (emailError) Text("Introduce un email válido") },
+                    supportingText = { if (emailError) Text(stringResource(R.string.auth_email_invalid)) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
@@ -88,14 +90,17 @@ fun LoginDialogIfNeeded(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Contraseña") },
+                    label = { Text(stringResource(R.string.auth_password_label)) },
                     singleLine = true,
                     isError = passError,
-                    supportingText = { if (passError) Text("Mínimo 6 caracteres") },
+                    supportingText = { if (passError) Text(stringResource(R.string.auth_password_min_length, 6)) },
                     visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showPass = !showPass }) {
-                            val desc = if (showPass) "Ocultar contraseña" else "Mostrar contraseña"
+                            val desc = if (showPass)
+                                stringResource(R.string.auth_hide_password)
+                            else
+                                stringResource(R.string.auth_show_password)
                             Icon(
                                 imageVector = if (showPass) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                 contentDescription = desc
@@ -123,7 +128,7 @@ fun LoginDialogIfNeeded(
                     TextButton(
                         onClick = { onForgot(email.trim()) },
                         enabled = email.isNotBlank() && !emailError && !loading
-                    ) { Text("¿Olvidaste la contraseña?") }
+                    ) { Text(stringResource(R.string.auth_forgot_password_link)) }
                 }
             }
         },
@@ -138,13 +143,15 @@ fun LoginDialogIfNeeded(
                 if (loading) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Iniciar sesión")
+                    Text(stringResource(R.string.auth_sign_in))
                 }
             }
         },
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { if (!loading) onDismiss() }) { Text("Cancelar") }
+                TextButton(onClick = { if (!loading) onDismiss() }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
                 Spacer(Modifier.width(4.dp))
                 FilledTonalButton(
                     onClick = {
@@ -152,7 +159,7 @@ fun LoginDialogIfNeeded(
                         onGoRegister()
                     },
                     enabled = !loading
-                ) { Text("Crear cuenta") }
+                ) { Text(stringResource(R.string.auth_create_account)) }
             }
         }
     )
@@ -161,22 +168,18 @@ fun LoginDialogIfNeeded(
     if (showReplaceAnonDialog) {
         AlertDialog(
             onDismissRequest = { showReplaceAnonDialog = false },
-            title = { Text("Cambiar de invitado a cuenta existente") },
+            title = { Text(stringResource(R.string.auth_replace_guest_title)) },
             text = {
-                Text(
-                    "Vas a iniciar sesión con una cuenta.\n\n" +
-                            "La sesión de invitado se reemplazará y los datos creados como invitado " +
-                            "no se migrarán automáticamente."
-                )
+                Text(stringResource(R.string.auth_replace_guest_message))
             },
             confirmButton = {
                 TextButton(onClick = {
                     showReplaceAnonDialog = false
                     onConfirm(email.trim(), password)
-                }) { Text("Continuar") }
+                }) { Text(stringResource(R.string.common_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showReplaceAnonDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showReplaceAnonDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }

@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.sergiom.thebestdamkebap.domain.cart.CartItem
 import com.sergiom.thebestdamkebap.domain.cart.MenuLine
 import com.sergiom.thebestdamkebap.domain.cart.ProductLine
 import java.text.NumberFormat
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun CartItemRow(
@@ -101,7 +103,10 @@ internal fun CartItemRow(
                             if (item.customization?.removedIngredients?.isNotEmpty() == true) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    "Sin: " + item.customization.removedIngredients.joinToString(),
+                                    text = stringResource(
+                                        R.string.cart_removed_ingredients,
+                                        item.customization.removedIngredients.joinToString()
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -137,7 +142,7 @@ internal fun CartItemRow(
                     shape = CircleShape,
                     contentPadding = PaddingValues(0.dp),
                     modifier = Modifier.size(40.dp)
-                ) { Icon(Icons.Outlined.Remove, contentDescription = "Disminuir") }
+                ) { Icon(Icons.Outlined.Remove, contentDescription = stringResource(R.string.cart_qty_decrease_cd)) }
 
                 Text(
                     "${item.qty}",
@@ -150,7 +155,7 @@ internal fun CartItemRow(
                     shape = CircleShape,
                     contentPadding = PaddingValues(0.dp),
                     modifier = Modifier.size(40.dp)
-                ) { Icon(Icons.Outlined.Add, contentDescription = "Aumentar") }
+                ) { Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.cart_qty_increase_cd)) }
 
                 Spacer(Modifier.width(8.dp))
 
@@ -164,7 +169,7 @@ internal fun CartItemRow(
                 ) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Eliminar")
+                    Text(stringResource(R.string.cart_remove_button))
                 }
             }
         }

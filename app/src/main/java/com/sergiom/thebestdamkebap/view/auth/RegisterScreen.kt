@@ -30,10 +30,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.view.auth.components.register.FormRegister
 import com.sergiom.thebestdamkebap.view.auth.components.register.RegisterLogoAndTitle
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
@@ -146,7 +148,7 @@ fun RegisterScreen(
                     ) {
                         RegisterLogoAndTitle(
                             logoRes = logoRes,
-                            title = "Crea tu cuenta y únete a The Best Dönner DAM"
+                            title = stringResource(R.string.register_title)
                         )
                     }
 
@@ -187,7 +189,7 @@ fun RegisterScreen(
                             onClick = onBackToLogin,
                             enabled = !loading && !awaitingRegister
                         ) {
-                            Text("¿Ya tienes cuenta? Inicia sesión", color = colors.primary)
+                            Text(stringResource(R.string.register_back_to_login_cta), color = colors.primary)
                         }
 
                         Spacer(Modifier.height(24.dp))
@@ -206,7 +208,7 @@ fun RegisterScreen(
 
                     RegisterLogoAndTitle(
                         logoRes = logoRes,
-                        title = "Crea tu cuenta y únete a The Best Dönner DAM"
+                        title = stringResource(R.string.register_title)
                     )
 
                     Spacer(Modifier.height(24.dp))
@@ -239,7 +241,7 @@ fun RegisterScreen(
                         onClick = onBackToLogin,
                         enabled = !loading && !awaitingRegister
                     ) {
-                        Text("¿Ya tienes cuenta? Inicia sesión", color = colors.primary)
+                        Text(stringResource(R.string.register_back_to_login_cta), color = colors.primary)
                     }
 
                     Spacer(Modifier.height(24.dp))

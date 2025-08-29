@@ -15,7 +15,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
 
 /* ---------- Pago simulado ---------- */
 @Composable
@@ -27,7 +29,7 @@ internal fun PaymentDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Simular pago", color = MaterialTheme.colorScheme.primary) },
+        title = { Text(text = stringResource(R.string.checkout_payment_title), color = MaterialTheme.colorScheme.primary) },
         text = {
             if (processing) {
                 Row(
@@ -36,9 +38,9 @@ internal fun PaymentDialog(
                 ) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Column {
-                        Text("Procesando pago…", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.checkout_payment_processing_title), style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Esto puede tardar unos segundos.",
+                            stringResource(R.string.checkout_payment_processing_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -60,7 +62,7 @@ internal fun PaymentDialog(
                             Spacer(Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    "Importe a cobrar",
+                                    stringResource(R.string.checkout_payment_amount_label),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -73,7 +75,7 @@ internal fun PaymentDialog(
                     }
 
                     Text(
-                        "No se realiza ningún cargo real. Pulsa \"Pagar ahora\" para continuar.",
+                        stringResource(R.string.checkout_payment_disclaimer),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -87,12 +89,12 @@ internal fun PaymentDialog(
             ) {
                 Icon(Icons.Outlined.CreditCard, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Pagar ahora")
+                Text(stringResource(R.string.checkout_payment_confirm_cta))
             }
         },
         dismissButton = {
             TextButton(enabled = !processing, onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.checkout_payment_cancel))
             }
         }
     )

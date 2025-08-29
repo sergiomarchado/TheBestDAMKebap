@@ -31,8 +31,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun AddressBlock(
@@ -63,9 +65,10 @@ internal fun AddressBlock(
                 Icon(Icons.Outlined.LocationOn, contentDescription = null)
                 Text(
                     text = when {
-                        addresses.isEmpty() -> "Sin direcciones. Añade una nueva."
-                        selectedId == null  -> "Elige una dirección"
-                        else -> addresses.firstOrNull { it.first == selectedId }?.second ?: "Elige una dirección"
+                        addresses.isEmpty() -> stringResource(R.string.addresses_empty_short)
+                        selectedId == null  -> stringResource(R.string.addresses_choose_one)
+                        else -> addresses.firstOrNull { it.first == selectedId }?.second
+                            ?: stringResource(R.string.addresses_choose_one)
                     },
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
@@ -75,7 +78,10 @@ internal fun AddressBlock(
                 IconButton(onClick = { expanded = !expanded }, enabled = enabled) {
                     Icon(
                         imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = if (expanded) "Contraer" else "Expandir",
+                        contentDescription = if (expanded)
+                            stringResource(R.string.addresses_collapse_cd)
+                        else
+                            stringResource(R.string.addresses_expand_cd),
                         modifier = Modifier.graphicsLayer { rotationZ = rotate }
                     )
                 }
@@ -89,8 +95,8 @@ internal fun AddressBlock(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onAddNew, enabled = enabled) { Text("Añadir nueva") }
-                        TextButton(onClick = onManage, enabled = enabled) { Text("Gestionar direcciones") }
+                        OutlinedButton(onClick = onAddNew, enabled = enabled) { Text(stringResource(R.string.address_add_cta)) }
+                        TextButton(onClick = onManage, enabled = enabled) { Text(stringResource(R.string.addresses_manage_cta)) }
                     }
 
                     if (addresses.isNotEmpty()) {

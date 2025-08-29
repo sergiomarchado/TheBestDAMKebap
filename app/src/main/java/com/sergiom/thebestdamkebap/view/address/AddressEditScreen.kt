@@ -10,12 +10,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sergiom.thebestdamkebap.view.address.utils.asText
 import com.sergiom.thebestdamkebap.viewmodel.address.AddressEditViewModel
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Pantalla de **crear/editar dirección**.
@@ -49,7 +52,7 @@ fun AddressEditScreen(
 
     if (ui.isGuest) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Inicia sesión para continuar")
+            Text(text = stringResource(R.string.login_request))
         }
         return
     }
@@ -80,7 +83,9 @@ fun AddressEditScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (!isEditing) "Nueva dirección" else "Editar dirección",
+                    text =
+                        if (!isEditing) stringResource(R.string.new_address)
+                        else stringResource(R.string.edit_address),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 FilledTonalButton(
@@ -91,7 +96,9 @@ fun AddressEditScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text(if (ui.loading) "Guardando..." else "Guardar")
+                    Text(text =
+                        if (ui.loading) stringResource(R.string.saving)
+                        else stringResource(R.string.save))
                 }
             }
 
@@ -106,7 +113,7 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.label,
                     onValueChange = { vm.edit { copy(label = it) } },
-                    label = { Text("Etiqueta (Casa, Trabajo)") },
+                    label = { Text(text = stringResource(R.string.address_label) ) },
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -115,7 +122,7 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.recipientName,
                     onValueChange = { vm.edit { copy(recipientName = it) } },
-                    label = { Text("Persona de contacto") },
+                    label = { Text(text = stringResource(R.string.address_recipient_label)) },
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -124,9 +131,9 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.phone,
                     onValueChange = { vm.edit { copy(phone = it) } },
-                    label = { Text("Teléfono") },
+                    label = { Text(text = stringResource(R.string.address_phone_label)) },
                     supportingText = {
-                        Text(f.ePhone ?: "Obligatorio: 9 dígitos (España). Admite prefijo +34/34.")
+                        Text(f.ePhone?.asText() ?: stringResource(R.string.address_phone_hint))
                     },
                     isError = f.ePhone != null,
                     enabled = !ui.loading,
@@ -141,9 +148,9 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.street,
                     onValueChange = { vm.edit { copy(street = it) } },
-                    label = { Text("Calle / Avenida") },
+                    label = { Text(text = stringResource(R.string.address_street_label)) },
                     isError = f.eStreet != null,
-                    supportingText = { f.eStreet?.let { Text(it) } },
+                    supportingText = { f.eStreet?.let { Text(it.asText()) } },
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -156,9 +163,9 @@ fun AddressEditScreen(
                     OutlinedTextField(
                         value = f.number,
                         onValueChange = { vm.edit { copy(number = it) } },
-                        label = { Text("Número") },
+                        label = { Text(text = stringResource(R.string.address_number_label)) },
                         isError = f.eNumber != null,
-                        supportingText = { f.eNumber?.let { Text(it) } },
+                        supportingText = { f.eNumber?.let { Text(it.asText()) } },
                         enabled = !ui.loading,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
@@ -170,7 +177,7 @@ fun AddressEditScreen(
                     OutlinedTextField(
                         value = f.floorDoor,
                         onValueChange = { vm.edit { copy(floorDoor = it) } },
-                        label = { Text("Piso/puerta") },
+                        label = { Text(text = stringResource(R.string.address_floor_door_label)) },
                         enabled = !ui.loading,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f),
@@ -184,9 +191,9 @@ fun AddressEditScreen(
                     OutlinedTextField(
                         value = f.postalCode,
                         onValueChange = { vm.edit { copy(postalCode = it) } },
-                        label = { Text("CP") },
+                        label = { Text(text = stringResource(R.string.address_postal_code_label)) },
                         isError = f.ePostalCode != null,
-                        supportingText = { f.ePostalCode?.let { Text(it) } },
+                        supportingText = { f.ePostalCode?.let { Text(it.asText()) } },
                         enabled = !ui.loading,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
@@ -198,9 +205,9 @@ fun AddressEditScreen(
                     OutlinedTextField(
                         value = f.city,
                         onValueChange = { vm.edit { copy(city = it) } },
-                        label = { Text("Ciudad") },
+                        label = { Text(text = stringResource(R.string.address_city_label)) },
                         isError = f.eCity != null,
-                        supportingText = { f.eCity?.let { Text(it) } },
+                        supportingText = { f.eCity?.let { Text(it.asText()) } },
                         enabled = !ui.loading,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f),
@@ -210,7 +217,7 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.province,
                     onValueChange = { vm.edit { copy(province = it) } },
-                    label = { Text("Provincia") },
+                    label = { Text(text = stringResource(R.string.address_province_label)) },
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -219,8 +226,8 @@ fun AddressEditScreen(
                 OutlinedTextField(
                     value = f.notes,
                     onValueChange = { vm.edit { copy(notes = it) } },
-                    label = { Text("Indicaciones") },
-                    supportingText = { Text("Opcional") },
+                    label = { Text(text = stringResource(R.string.address_notes_label)) },
+                    supportingText = { Text(text = stringResource(R.string.common_optional)) },
                     enabled = !ui.loading,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { onSave() }),
@@ -235,7 +242,7 @@ fun AddressEditScreen(
                         enabled = !ui.loading
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Establecer como predeterminada")
+                    Text(text = stringResource(R.string.address_set_as_default))
                 }
 
                 if (ui.loading) {

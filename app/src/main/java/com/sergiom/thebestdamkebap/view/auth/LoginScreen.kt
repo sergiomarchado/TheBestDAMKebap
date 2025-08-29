@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +31,7 @@ import com.sergiom.thebestdamkebap.viewmodel.auth.AuthEvent
 import com.sergiom.thebestdamkebap.viewmodel.auth.AuthViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.sergiom.thebestdamkebap.R
 
 /**
  * Pantalla de inicio de sesión.
@@ -123,7 +125,7 @@ fun LoginScreen(
             AuthLogo(logoRes, shapes)
 
             Text(
-                text = "¡Bienvenid@! Inicia sesión y disfruta del sabor mejor desarrollado...",
+                text = stringResource(R.string.login_welcome),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = colors.primary,
                 textAlign = TextAlign.Center,
@@ -216,22 +218,25 @@ fun LoginScreen(
     if (showReplaceAnonDialog) {
         AlertDialog(
             onDismissRequest = { showReplaceAnonDialog = false },
-            title = { Text("Cambiar de invitado a cuenta existente") },
+            title = { Text(stringResource(R.string.login_switch_from_guest)) },
             text = {
                 Text(
-                    "Vas a iniciar sesión con una cuenta.\n\n" +
-                            "La sesión de invitado se reemplazará y los datos creados como invitado " +
-                            "no se migrarán automáticamente."
+                    text = stringResource(R.string.auth_guest_replacement_warning)
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showReplaceAnonDialog = false
                     doLoginNow(pendingEmail, pendingPassword)
-                }) { Text("Continuar") }
+                }) { Text(stringResource(R.string.auth_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showReplaceAnonDialog = false }) { Text("Cancelar") }
+                TextButton(
+                    onClick = { showReplaceAnonDialog = false }
+                ) {
+                    Text(stringResource(R.string.auth_cancel)
+                    )
+                }
             }
         )
     }

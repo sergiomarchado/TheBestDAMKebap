@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import com.sergiom.thebestdamkebap.R
 
 @Singleton
 class FirebaseOrdersRepository @Inject constructor(
@@ -42,7 +43,7 @@ class FirebaseOrdersRepository @Inject constructor(
         deliveryAddress: AddressSnap?
     ): String {
         val uid = auth.currentUser?.uid
-            ?: error("Debes iniciar sesión para completar el pedido.")
+            ?: error(R.string.firebaseordersrepository_must_log_in)
 
         Log.d(TAG, "submit(): uid=$uid, mode=$mode, addressId=$addressId, items=${cart.items.size}, total=${cart.totalCents}")
 
@@ -59,8 +60,13 @@ class FirebaseOrdersRepository @Inject constructor(
         )
 
         if (mode == OrderMode.DELIVERY) {
-            require(!addressId.isNullOrBlank()) { "Para envío a domicilio debes elegir una dirección." }
-            requireNotNull(deliveryAddress) { "Falta snapshot de la dirección de entrega." }
+            require(!addressId.isNullOrBlank()) {
+                R.string.firebaseordersrepository_must_choose_address
+            }
+
+            requireNotNull(deliveryAddress) {
+                R.string.firebaseordersrepository_missing_snapshot
+            }
 
             // Chequeo rápido para log
             quickCheckDeliverySnap(deliveryAddress)?.let { warn ->

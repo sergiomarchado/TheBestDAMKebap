@@ -4,6 +4,7 @@ package com.sergiom.thebestdamkebap.data.address
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.snapshots
+import com.sergiom.thebestdamkebap.R
 import com.sergiom.thebestdamkebap.di.ApplicationScope
 import com.sergiom.thebestdamkebap.domain.address.AddressRepository
 import com.sergiom.thebestdamkebap.domain.address.Address as DomainAddress
@@ -86,7 +87,7 @@ class FirebaseAddressRepository @Inject constructor(
     override suspend fun upsertAddress(uid: String, aid: String?, input: DomainAddressInput): String {
         if (aid.isNullOrBlank()) {
             // creación: teléfono debe venir informado
-            require(!input.phone.isNullOrBlank()) { "Teléfono obligatorio" }
+            require(!input.phone.isNullOrBlank()) { R.string.firebaseaddressrepository_mandatory_telephone }
         }
 
         val ref = if (aid.isNullOrBlank()) addrCol(uid).document() else addrCol(uid).document(aid)

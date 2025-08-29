@@ -1,13 +1,23 @@
+// domain/address/ValidateAddressInputUseCase.kt
 package com.sergiom.thebestdamkebap.domain.address
 
 class ValidateAddressInputUseCase {
 
+    /** Códigos de error neutrales (sin texto/UI). */
+    enum class AddressError {
+        STREET_REQUIRED, STREET_TOO_LONG,
+        NUMBER_REQUIRED, NUMBER_TOO_LONG,
+        CITY_REQUIRED, CITY_TOO_LONG,
+        POSTAL_REQUIRED, POSTAL_INVALID,
+        PHONE_REQUIRED, PHONE_INVALID
+    }
+
     data class Errors(
-        val street: String? = null,
-        val number: String? = null,
-        val city: String? = null,
-        val postalCode: String? = null,
-        val phone: String? = null,
+        val street: AddressError? = null,
+        val number: AddressError? = null,
+        val city: AddressError? = null,
+        val postalCode: AddressError? = null,
+        val phone: AddressError? = null,
     )
 
     data class Sanitized(
@@ -28,7 +38,7 @@ class ValidateAddressInputUseCase {
     operator fun invoke(
         label: String?,
         recipientName: String?,
-        phone: String?,          // ← ahora OBLIGATORIO
+        phone: String?,
         street: String?,
         number: String?,
         floorDoor: String?,
@@ -43,29 +53,29 @@ class ValidateAddressInputUseCase {
 
         val e = Errors(
             street = when {
-                street.isNullOrBlank() -> "Calle obligatoria"
-                street.length > 120     -> "Máx. 120 caracteres"
+                street.isNullOrBlank() -> AddressError.STREET_REQUIRED
+                street.length > 120     -> AddressError.STREET_TOO_LONG
                 else -> null
             },
             number = when {
-                number.isNullOrBlank() -> "Número obligatorio"
-                number.length > 10      -> "Máx. 10 caracteres"
+                number.isNullOrBlank() -> AddressError.NUMBER_REQUIRED
+                number.length > 10      -> AddressError.NUMBER_TOO_LONG
                 else -> null
             },
             city = when {
-                city.isNullOrBlank() -> "Ciudad obligatoria"
-                city.length > 80     -> "Máx. 80 caracteres"
+                city.isNullOrBlank() -> AddressError.CITY_REQUIRED
+                city.length > 80     -> AddressError.CITY_TOO_LONG
                 else -> null
             },
             postalCode = when {
-                postalCode.isNullOrBlank() -> "CP obligatorio"
-                !postalCode.matches(Regex("""^\d{5}$""")) -> "CP inválido (5 dígitos)"
+                postalCode.isNullOrBlank() -> AddressError.POSTAL_REQUIRED
+                !postalCode.matches(Regex("""^\d{5}$""")) -> AddressError.POSTAL_INVALID
                 else -> null
             },
             phone = when {
-                phoneNorm == null -> "Teléfono obligatorio"
+                phoneNorm == null -> AddressError.PHONE_REQUIRED
                 !phoneNorm.matches(Regex("""^\+?[0-9]{9,15}$""")) ->
-                    "Teléfono inválido (9–15 dígitos, opcional +)"
+                    AddressError.PHONE_INVALID
                 else -> null
             }
         )
@@ -88,15 +98,6 @@ class ValidateAddressInputUseCase {
         return Result(valid, e, sanitized)
     }
 
-    /**
-     * Normaliza el teléfono:
-     * - Recorta espacios.
-     * - Conserva el '+' inicial si estaba presente.
-     * - El resto solo dígitos.
-     * - Si queda vacío, devuelve null.
-     *
-     * Válido contra las reglas: ^\+?[0-9]{9,15}$
-     */
     private fun normalizePhone(raw: String?): String? {
         val s = raw?.trim() ?: return null
         if (s.isEmpty()) return null

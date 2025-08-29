@@ -14,11 +14,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sergiom.thebestdamkebap.domain.cart.MenuLine
 import kotlin.collections.isNotEmpty
 import kotlin.collections.joinToString
 import kotlin.collections.orEmpty
+import com.sergiom.thebestdamkebap.R
 
 /* ---------- Resumen de menús ---------- */
 @Composable
@@ -45,7 +47,10 @@ internal fun MenuSelectionsSummary(
         if (acc.isNotEmpty()) names = acc
     }
 
-    val label = if (expanded) "Ocultar detalles" else "Ver detalles"
+    val label = if (expanded)
+        stringResource(R.string.menu_hide_details)
+    else
+        stringResource(R.string.menu_show_details)
     AssistChip(onClick = { expanded = !expanded }, label = { Text(label) })
 
     if (expanded) {

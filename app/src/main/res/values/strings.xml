@@ -1,3 +1,351 @@
 <resources>
     <string name="app_name">TheBestDAMKebap</string>
+
+    <!-- STORAGEIMAGE -->
+    <string name="storage_image_could_not_be_loaded">No se pudo cargar la imagen</string>
+
+    <!-- FIREBASEADDRESSREPOSITORY -->
+    <string name="firebaseaddressrepository_mandatory_telephone">Teléfono obligatorio</string>
+
+    <!-- FIREBASEAUTHREPOSITORY -->
+    <string name="firebaseauthrepository_not_log_in">No se pudo iniciar sesión.</string>
+    <string name="firebaseauthrepository_registration_failed">No se pudo registrar usuario.</string>
+
+    <!-- FIREBASEORDERSREPOSITORY -->
+    <string name="firebaseordersrepository_must_log_in">Debes iniciar sesión para completar el pedido.</string>
+    <string name="firebaseordersrepository_must_choose_address">Para envío a domicilio debes elegir una dirección.</string>
+    <string name="firebaseordersrepository_missing_snapshot">Falta snapshot de la dirección de entrega.</string>
+
+    <!-- VALIDATEADDRESSINPUTUSECASE -->
+    <string name="error_street_required">Calle obligatoria</string>
+    <string name="error_street_too_long">Máx. 120 caracteres</string>
+    <string name="error_number_required">Número obligatorio</string>
+    <string name="error_number_too_long">Máx. 10 caracteres</string>
+    <string name="error_city_required">Ciudad obligatoria</string>
+    <string name="error_city_too_long">Máx. 80 caracteres</string>
+    <string name="error_postal_required">CP obligatorio</string>
+    <string name="error_postal_invalid">CP inválido (5 dígitos)</string>
+    <string name="error_phone_required">Teléfono obligatorio</string>
+    <string name="error_phone_invalid">Teléfono inválido (9–15 dígitos, opcional +)</string>
+
+    <!-- errores de menú -->
+    <string name="error_menu_group_min_max">Grupo “%1$s”: selecciona entre %2$d y %3$d.</string>
+    <string name="error_menu_option_not_allowed">Opción no permitida en “%1$s”.</string>
+
+    <!-- MenuBuilderDialog -->
+    <string name="ui_close">Cerrar</string>
+    <string name="ui_customize">Personalizar</string>
+    <string name="ui_total">Total</string>
+    <string name="ui_add_menu">Añadir menú</string>
+
+    <!-- Profile errors -->
+    <string name="profile_error_given_name_too_long">Máximo 50 caracteres</string>
+    <string name="profile_error_family_name_too_long">Máximo 60 caracteres</string>
+    <string name="profile_error_phone_invalid_es">Debe tener 9 dígitos (España)</string>
+    <string name="profile_error_birth_future">La fecha no puede ser futura</string>
+    <string name="profile_error_birth_min_age_13">Debes tener al menos 13 años</string>
+
+    <!-- Perfil -->
+    <string name="profile_title">Mi perfil</string>
+    <string name="profile_sign_in_to_edit">Inicia sesión para editar tu perfil</string>
+    <string name="profile_email_label">Email</string>
+    <string name="profile_email_hint">Este es tu email de acceso. No se puede cambiar desde la app.</string>
+    <string name="profile_name_label">Nombre</string>
+    <string name="profile_family_label">Apellidos</string>
+    <string name="profile_phone_label">Teléfono</string>
+    <string name="profile_birth_label">Fecha de nacimiento</string>
+    <string name="profile_birth_pick">Elegir fecha</string>
+    <string name="profile_save">Guardar cambios</string>
+    <string name="profile_saving">Guardando…</string>
+    <string name="profile_reset_password">Restablecer contraseña</string>
+    <string name="profile_saved">Guardado</string>
+
+    <!-- Comunes -->
+    <string name="common_optional">Opcional</string>
+
+    <!-- AddressEditScreen -->
+    <string name="login_request">Inicia sesión para continuar</string>
+    <string name="new_address">Nueva dirección</string>
+    <string name="edit_address">Editar dirección</string>
+    <string name="save">Guardar</string>
+    <string name="saving">Guardando…</string>
+
+    <string name="address_label">Etiqueta (Casa, Trabajo)</string>
+    <string name="address_recipient_label">Persona de contacto</string>
+    <string name="address_phone_label">Teléfono</string>
+    <string name="address_phone_hint">Obligatorio: 9–15 dígitos. Se admite prefijo “+”.</string>
+
+    <string name="address_street_label">Calle / Avenida</string>
+    <string name="address_number_label">Número</string>
+    <string name="address_floor_door_label">Piso/puerta</string>
+    <string name="address_postal_code_label">CP</string>
+    <string name="address_city_label">Ciudad</string>
+    <string name="address_province_label">Provincia</string>
+    <string name="address_notes_label">Indicaciones</string>
+
+    <string name="address_set_as_default">Establecer como predeterminada</string>
+
+    <!-- AddressListScreen -->
+    <string name="addresses_sign_in_to_manage">Inicia sesión para gestionar tus direcciones</string>
+    <string name="addresses_title">Mis direcciones</string>
+    <string name="addresses_add">Añadir</string>
+    <string name="addresses_fallback_label">Dirección</string>
+    <string name="address_default_badge">Predeterminada</string>
+    <string name="addresses_edit">Editar</string>
+    <string name="addresses_delete">Eliminar</string>
+    <string name="addresses_is_default">Es la predeterminada</string>
+    <string name="addresses_make_default">Hacer predeterminada</string>
+    <string name="addresses_use_this_address">Usar esta dirección</string>
+
+    <!-- LoginScreen -->
+    <string name="login_welcome">¡Bienvenid@! Inicia sesión y disfruta del sabor mejor desarrollado…</string>
+    <string name="login_switch_from_guest">Cambiar de invitado a cuenta existente</string>
+    <string name="auth_guest_replacement_warning">
+    Vas a iniciar sesión con una cuenta.\n\nLa sesión de invitado se reemplazará y los datos creados como invitado no se migrarán automáticamente.
+    </string>
+    <string name="auth_continue">Continuar</string>
+    <string name="auth_cancel">Cancelar</string>
+
+    <!-- AuthButtonsRow -->
+    <string name="authbutton_login">Iniciar Sesión</string>
+    <string name="authbutton_register">Registrar</string>
+
+    <!-- EmailField -->
+    <string name="login_email_label">Correo electrónico</string>
+    <string name="login_email_icon_desc">Icono de correo</string>
+
+    <!-- ForgotPasswordRow -->
+    <string name="login_forgot_password_question">¿Has olvidado la contraseña?</string>
+    <string name="login_forgot_password_cta">Pulse aquí</string>
+
+    <!-- GuestAccess -->
+    <string name="login_guest_access_cta">Acceder como invitado</string>
+
+    <!-- PasswordField -->
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_password_hide">Ocultar contraseña</string>
+    <string name="login_password_show">Mostrar contraseña</string>
+
+    <!-- RememberEmailRow -->
+    <string name="rememberemail">Recordar correo electrónico</string>
+
+    <!-- ConfirmPasswordFieldRegister -->
+    <string name="register_confirm_password_label">Repita la contraseña</string>
+    <string name="register_passwords_mismatch">Las contraseñas no coinciden</string>
+    <string name="auth_show_password">Mostrar contraseña</string>
+    <string name="auth_hide_password">Ocultar contraseña</string>
+
+    <!-- EmailFieldRegister -->
+    <string name="register_email_label">Introduzca su correo electrónico</string>
+    <string name="register_email_invalid">Introduzca un correo electrónico válido</string>
+
+    <!-- NameFieldRegister -->
+    <string name="register_name_label_optional">Introduzca su nombre (opcional)</string>
+
+    <!-- PasswordFieldRegister -->
+    <string name="register_password_label">Introduzca su contraseña</string>
+    <string name="register_password_min_length">La contraseña debe tener al menos %1$d caracteres</string>
+
+    <!-- RegisterScreen -->
+    <string name="register_title">Crea tu cuenta y únete a The Best DAM Kebap</string>
+    <string name="register_back_to_login_cta">¿Ya tienes cuenta? Inicia sesión</string>
+
+    <!-- CartItemRow -->
+    <string name="cart_removed_ingredients">Sin: %1$s</string>
+    <string name="cart_qty_decrease_cd">Disminuir cantidad</string>
+    <string name="cart_qty_increase_cd">Aumentar cantidad</string>
+    <string name="cart_remove_button">Eliminar</string>
+
+    <!-- ConfirmShippingDialog -->
+    <string name="checkout_confirm_title">Confirmar tu pedido</string>
+    <string name="checkout_confirm_body">Elige cómo completar tu pedido y revisa la dirección de entrega (si es envío a domicilio).</string>
+    <string name="checkout_mode_pickup">Recogida</string>
+    <string name="checkout_mode_delivery">Envío a domicilio</string>
+    <string name="checkout_no_address">No tienes una dirección seleccionada.</string>
+    <string name="checkout_add_address">Añadir dirección</string>
+    <string name="checkout_deliver_to_label">Se entregará en:</string>
+    <string name="checkout_loading_address">Cargando dirección…</string>
+    <string name="checkout_change_address">Cambiar</string>
+    <string name="checkout_continue">Continuar</string>
+    <string name="checkout_close">Cerrar</string>
+
+    <!-- MenuSelectionsSummary -->
+    <string name="menu_show_details">Ver detalles</string>
+    <string name="menu_hide_details">Ocultar detalles</string>
+
+    <!-- PaymentDialog -->
+    <string name="checkout_payment_title">Simular pago</string>
+    <string name="checkout_payment_processing_title">Procesando pago…</string>
+    <string name="checkout_payment_processing_subtitle">Esto puede tardar unos segundos.</string>
+    <string name="checkout_payment_amount_label">Importe a cobrar</string>
+    <string name="checkout_payment_disclaimer">No se realiza ningún cargo real. Pulsa Pagar ahora para continuar.</string>
+    <string name="checkout_payment_confirm_cta">Pagar ahora</string>
+    <string name="checkout_payment_cancel">Cancelar</string>
+
+    <!-- CartScreen -->
+    <string name="cart_title">Tu Pedido:</string>
+    <string name="cart_back_cd">Atrás</string>
+    <string name="cart_pay_cta">Pagar</string>
+    <string name="cart_browsing_only_error">Estás en modo exploración. Selecciona el modo de pedido para continuar.</string>
+    <string name="cart_select_mode_error">Selecciona un modo de pedido (Recogida o Envío a domicilio) antes de pagar.</string>
+    <string name="cart_empty_state">Tu carrito está vacío</string>
+
+    <string name="cart_success_title">¡Pedido realizado!</string>
+    <string name="cart_success_order_number_label">Tu número de pedido es:</string>
+    <string name="cart_success_save_hint">Guárdalo por si necesitas consultar el estado.</string>
+    <string name="cart_view_order_cta">Ver pedido</string>
+    <string name="cart_close">Cerrar</string>
+
+    <string name="cart_error_title">No se pudo completar</string>
+    <string name="cart_accept">Aceptar</string>
+
+    <!-- HomeDrawerContent -->
+    <string name="home_drawer_section_account">CUENTA</string>
+    <string name="home_drawer_section_session">SESIÓN</string>
+    <string name="home_drawer_profile">Mi perfil</string>
+    <string name="home_drawer_addresses">Mis direcciones</string>
+    <string name="home_drawer_recent_orders">Últimos pedidos</string>
+    <string name="home_drawer_settings">Configuración</string>
+    <string name="home_drawer_sign_in">Iniciar sesión</string>
+    <string name="home_drawer_create_account">Crear cuenta</string>
+    <string name="home_drawer_sign_out">Cerrar sesión</string>
+
+    <!-- HomeTopBar -->
+    <string name="home_topbar_logo_cd">Logo</string>
+    <string name="home_topbar_sign_in">Iniciar sesión</string>
+    <string name="home_topbar_register">Registrarse</string>
+    <string name="home_topbar_sign_out">Cerrar sesión</string>
+    <string name="home_topbar_open_menu_cd">Abrir menú</string>
+
+    <!-- LoginDialogIfNeeded -->
+    <string name="auth_sign_in">Iniciar sesión</string>
+    <string name="auth_email_label">Correo electrónico</string>
+    <string name="auth_email_invalid">Introduce un correo electrónico válido</string>
+    <string name="auth_password_label">Contraseña</string>
+    <string name="auth_password_min_length">Mínimo %1$d caracteres</string>
+    <string name="auth_forgot_password_link">¿Has olvidado la contraseña?</string>
+    <string name="auth_create_account">Crear cuenta</string>
+
+    <string name="auth_replace_guest_title">Cambiar de invitado a cuenta existente</string>
+    <string name="auth_replace_guest_message">
+        Vas a iniciar sesión con una cuenta.
+
+        La sesión de invitado se reemplazará y los datos creados como invitado no se migrarán automáticamente.
+    </string>
+
+    <!-- Common -->
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_continue">Continuar</string>
+
+    <!-- HomeScreen -->
+    <string name="common_guest">Invitado</string>
+    <string name="common_user">Usuario</string>
+
+    <!-- HomeShell -->
+    <string name="home_tab_dashboard">Inicio</string>
+    <string name="home_tab_offers">Ofertas</string>
+    <string name="home_tab_products">Productos</string>
+    <string name="home_fab_cart_cd">Carrito (%1$d)</string>
+
+    <!-- AddressBlock -->
+    <string name="addresses_empty_short">Sin direcciones. Añade una nueva.</string>
+    <string name="addresses_choose_one">Elige una dirección</string>
+    <string name="addresses_expand_cd">Expandir</string>
+    <string name="addresses_collapse_cd">Contraer</string>
+    <string name="addresses_manage_cta">Gestionar direcciones</string>
+    <string name="address_add_cta">Añadir dirección</string>
+
+    <!-- ModeToggle -->
+    <string name="home_mode_delivery_label">Envío a domicilio</string>
+    <string name="home_mode_pickup_label">Para recoger</string>
+
+    <!-- HomeStartScreen -->
+    <string name="home_start_welcome">¡Bienvenid@ a The Best DAM Kebab!</string>
+    <string name="home_start_intro">Comienza a configurar tu pedido y échale un ojo a las novedades, por supuesto.</string>
+    <string name="home_start_cta_delivery">Empezar pedido a domicilio</string>
+    <string name="home_start_cta_pickup">Empezar pedido para recoger</string>
+    <string name="home_start_promos_title">¡PROMOCIONES DEL MES!</string>
+    <string name="home_start_promos_intro">Estas son algunas de las promociones que podrás disfrutar ahora mismo:</string>
+
+    <!-- Common -->
+    <string name="common_loading">Cargando…</string>
+
+    <!-- OrderGate -->
+    <string name="gate_setup_title">Configura tu pedido</string>
+    <string name="gate_start_order_cta">Empezar pedido</string>
+    <string name="gate_browsing_cta">Solo estoy mirando</string>
+
+    <!-- buildFriendlyDetails -->
+    <string name="orders_line_qty_name">%1$d × %2$s%3$s</string>
+    <string name="orders_group_bullet">   · %1$s: %2$s</string>
+
+    <string name="orders_group_label_main">Principal</string>
+    <string name="orders_group_label_side">Acompañamiento</string>
+    <string name="orders_group_label_drink">Bebida</string>
+    <string name="orders_group_label_selection">Selección</string>
+    <string name="menu_removed_suffix"> (sin %1$s)</string>
+
+    <!-- OrderCard -->
+    <string name="orders_date_pending">Pendiente de fecha…</string>
+    <string name="orders_card_title">Pedido %1$s</string>
+    <plurals name="orders_items_count">
+        <item quantity="one">%1$d artículo</item>
+        <item quantity="other">%1$d artículos</item>
+    </plurals>
+    <string name="orders_show_details">Ver detalle</string>
+    <string name="orders_hide_details">Ocultar detalle</string>
+    <string name="orders_repeat_order_cta">Repetir pedido</string>
+    <string name="titlebar_repeat_order_cta">Mis Pedidos</string>
+
+    <!-- OrdersScreen -->
+    <string name="orders_sign_in_hint">Inicia sesión para ver tus pedidos.</string>
+    <string name="orders_empty">No tienes pedidos todavía.</string>
+
+    <!-- ProductCustomizeDialog -->
+    <string name="customize_title">Personaliza tu producto:</string>
+    <string name="customize_subtitle">Quita los ingredientes que no quieres</string>
+    <string name="customize_no_ingredients">Este producto no tiene ingredientes personalizables.</string>
+    <string name="customize_remove_all">Quitar todo</string>
+    <string name="customize_restore">Restaurar</string>
+    <string name="customize_removed_counter">%1$d/%2$d</string>
+    <string name="customize_ingredients_cd">Ingredientes personalizables</string>
+
+    <!-- Common (reutilizado) -->
+    <string name="common_close">Cerrar</string>
+    <string name="common_save">Guardar</string>
+
+    <!-- CategoryRow -->
+    <string name="products_categories_title">Categorías de productos:</string>
+    <string name="productsscreen_no_products">No hay productos en esta Categoría.</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Configuración</string>
+
+    <!-- Sección de idioma -->
+    <string name="settings_language_section_title">Idioma</string>
+    <string name="settings_language_section_desc">Selecciona el idioma de la app. “Sistema” usa el idioma del teléfono.</string>
+    <string name="settings_language_system">Sistema</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_english">English</string>
+
+    <!-- Privacidad / Eliminar cuenta -->
+    <string name="settings_privacy_section_title">Privacidad</string>
+    <string name="settings_delete_account_title">Eliminar cuenta</string>
+    <string name="settings_delete_account_desc">Borra tu perfil y direcciones. Tus pedidos existentes no se eliminan por motivos legales/auditoría.</string>
+    <string name="settings_delete_account_cta">Eliminar cuenta</string>
+    <string name="settings_deleting">Eliminando…</string>
+    <string name="settings_sign_in_to_manage">Inicia sesión para gestionar tu cuenta.</string>
+    <string name="settings_deleted_success">Cuenta eliminada. Se cerró la sesión.</string>
+
+    <!-- Diálogo de borrado -->
+    <string name="settings_delete_dialog_title">¿Eliminar tu cuenta?</string>
+    <string name="settings_delete_dialog_message">Esta acción es permanente. Se borrará tu perfil y tus direcciones.</string>
+    <string name="settings_password_of_email">Contraseña de %1$s</string>
+    <string name="settings_reauth_hint">Por seguridad, introduce la contraseña o vuelve a iniciar sesión.</string>
+    <string name="settings_yes_delete">Sí, borrar</string>
+
+
+
+
+
 </resources>

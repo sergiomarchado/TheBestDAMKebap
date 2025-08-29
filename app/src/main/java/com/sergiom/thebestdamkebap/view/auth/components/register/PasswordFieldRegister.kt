@@ -15,9 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 internal fun PasswordFieldRegister(
@@ -35,13 +37,18 @@ internal fun PasswordFieldRegister(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text("Introduzca contraseña") },
+        label = { Text(stringResource(R.string.register_password_label)) },
         singleLine = true,
         isError = isError,
-        supportingText = { if (isError) Text("La contraseña debe tener al menos 6 caracteres") },
+        supportingText = {
+            if (isError) Text(stringResource(R.string.register_password_min_length, 6))},
         leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Black) },
         trailingIcon = {
-            val cd = if (visible) "Ocultar contraseña" else "Mostrar contraseña"
+            val cd = if (visible)
+                stringResource(R.string.auth_hide_password)
+            else
+                stringResource(R.string.auth_show_password)
+
             IconButton(onClick = onToggleVisible) {
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,

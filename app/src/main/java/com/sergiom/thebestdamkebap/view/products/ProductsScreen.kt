@@ -36,6 +36,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.sergiom.thebestdamkebap.R
 
 @Composable
 fun ProductsScreen(
@@ -74,7 +76,7 @@ fun ProductsScreen(
         when {
             !ui.loading && ui.items.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay productos en esta categoría") // TODO: i18n a strings.xml
+                    Text(stringResource(R.string.productsscreen_no_products))
                 }
             }
             else -> {
