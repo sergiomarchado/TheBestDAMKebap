@@ -17,10 +17,15 @@ Puedes descargar la apk y probarla. Se encuentra disponible en mi portfolio: htt
 
 ---
 
+## 🎬 Demo en vídeo
+
+[![Demo de la app](https://img.youtube.com/vi/-smwx-DZYlQ/0.jpg)](https://www.youtube.com/shorts/-smwx-DZYlQ)
+
+---
+
 ## Índice
 
 - [📷 Capturas de pantalla](#-capturas-de-pantalla)
-- [🎥 Demo en vídeo](#-demo-en-vídeo)
 - [¿Qué es esta app? (explicación sencilla)](#qué-es-esta-app-explicación-sencilla)
 - [Características](#características)
 - [Cómo se usa (flujo básico)](#cómo-se-usa-flujo-básico)
@@ -59,9 +64,6 @@ Puedes descargar la apk y probarla. Se encuentra disponible en mi portfolio: htt
 
 ---
 
-## 🎥 Demo en vídeo
-
-**YouTube:** pendiente.  
 
 ---
 
