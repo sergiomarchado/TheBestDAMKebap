@@ -8,7 +8,7 @@
 - Se prioriza **claridad del código**, **accesibilidad básica** y **estructura escalable**.  
 - Se puede adaptar a otros negocios con imágenes verticales (p. ej., cafetería, pizzería) y **conectar un panel web** (Angular).
   
-Puedes descargar la apk y probarla. Se encuentra disponible en mi portfolio: https://sergiomarchado.github.io/Portfolio-Sergio-Marchado-Angular/
+Puedes conocer más proyectos en mi portfolio: https://sergiomarchado.github.io/Portfolio-Sergio-Marchado-Angular/
 
 ---
 <p align="center">
@@ -75,7 +75,7 @@ Puedes descargar la apk y probarla. Se encuentra disponible en mi portfolio: htt
 - El **pago es simulado**, así que puedes probar la experiencia completa sin cargo real.  
 - La app está en **español** e **inglés** y puedes **cambiar el idioma al instante** desde Ajustes.
 
-Puedes descargar la apk y probarla. Se encuentra disponible en mi portfolio: https://sergiomarchado.github.io/Portfolio-Sergio-Marchado-Angular/
+Puedes conocer más proyectos en mi portfolio: https://sergiomarchado.github.io/Portfolio-Sergio-Marchado-Angular/
 ---
 
 ## Características
